@@ -1,0 +1,27 @@
+files:
+  "01-example.sh":
+    scans:
+      - example-sh
+  "**/*.sh":
+    scans:
+      - shell-sec
+scans:
+  "example-sh":
+    type: "regexp"
+    source: "example-day"
+    args:
+      regexp: "^example_day=(?P<Version>\\d+)"
+  "shell-sec":
+    type: "regexp"
+    source: "shell-sec"
+    args:
+      regexp: "^example_sec=(?P<Version>\\d+)"
+sources:
+  "example-day":
+    type: "custom"
+    args:
+      cmd: "date +%d"
+  "example-sec":
+    type: "custom"
+    args:
+      cmd: "date +%S"
