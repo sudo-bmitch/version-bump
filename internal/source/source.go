@@ -1,23 +1,38 @@
 // Package source is used to fetch the latest version information from upstream
 package source
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+
+	"github.com/sudo-bmitch/version-bump/internal/config"
+)
 
 type Source interface {
 	// Get returns the version from upstream
 	// TODO: change input to the config for source and the scan match
-	Get(args map[string]string) (string, error)
+	Get(data interface{}) (string, error)
 }
 
-var sourceTypes map[string]Source = map[string]Source{
-	"custom": custom{},
+var sourceTypes map[string]func(config.Source) Source = map[string]func(config.Source) Source{
+	"custom": newCustom,
 	// TODO: add url (headers, parse json, parse regex), docker tag, git tag, git release, git commit
 }
 
+var mu sync.Mutex
+var sourceCache map[string]Source = map[string]Source{}
+
 // Get a named source
-func Get(t string) (Source, error) {
-	if s, ok := sourceTypes[t]; ok {
+func Get(confSrc config.Source) (Source, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	if s, ok := sourceCache[confSrc.Name]; ok {
 		return s, nil
 	}
-	return nil, fmt.Errorf("source type not known: %s", t)
+	if newFn, ok := sourceTypes[confSrc.Type]; ok {
+		s := newFn(confSrc)
+		sourceCache[confSrc.Name] = s
+		return s, nil
+	}
+	return nil, fmt.Errorf("source type not known: %s", confSrc.Type)
 }

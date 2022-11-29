@@ -19,16 +19,16 @@ type Scan interface {
 	io.ReadCloser
 }
 
-type newScan func(config.Scan, io.ReadCloser, *action.Action) (Scan, error)
+type newScan func(config.Scan, io.ReadCloser, *action.Action, string) (Scan, error)
 
 var scanTypes map[string]newScan = map[string]newScan{
 	"regexp": newREScan,
 }
 
 // New creates a new scan of a given type
-func New(conf config.Scan, rc io.ReadCloser, a *action.Action) (Scan, error) {
+func New(conf config.Scan, rc io.ReadCloser, a *action.Action, filename string) (Scan, error) {
 	if s, ok := scanTypes[conf.Type]; ok {
-		return s(conf, rc, a)
+		return s(conf, rc, a, filename)
 	}
 	return nil, fmt.Errorf("scan type not known: %s", conf.Type)
 }

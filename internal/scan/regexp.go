@@ -10,20 +10,21 @@ import (
 )
 
 type reScan struct {
-	action  *action.Action
-	conf    config.Scan
-	srcRdr  io.ReadCloser
-	outRdr  *io.PipeReader
-	re      *regexp.Regexp
-	nameInd map[string]int
+	action   *action.Action
+	conf     config.Scan
+	srcRdr   io.ReadCloser
+	outRdr   *io.PipeReader
+	re       *regexp.Regexp
+	nameInd  map[string]int
+	filename string
 }
 
-func newREScan(conf config.Scan, srcRdr io.ReadCloser, a *action.Action) (Scan, error) {
+func newREScan(conf config.Scan, srcRdr io.ReadCloser, a *action.Action, filename string) (Scan, error) {
 	// validate config, extract and compile regexp
 	if _, ok := conf.Args["regexp"]; !ok {
 		return nil, fmt.Errorf("scan regexp arg is missing for %s", conf.Name)
 	}
-	re, err := regexp.Compile(conf.Args["regexp"])
+	re, err := regexp.Compile("(?m)" + conf.Args["regexp"])
 	if err != nil {
 		return nil, fmt.Errorf("scan regexp does not compile for %s: %s: %w", conf.Name, conf.Args["regexp"], err)
 	}
@@ -43,14 +44,16 @@ func newREScan(conf config.Scan, srcRdr io.ReadCloser, a *action.Action) (Scan, 
 
 	// configure buf reader
 	r := &reScan{
-		action:  a,
-		conf:    conf,
-		srcRdr:  srcRdr,
-		outRdr:  pipeRdr,
-		re:      re,
-		nameInd: nameInd,
+		action:   a,
+		conf:     conf,
+		srcRdr:   srcRdr,
+		outRdr:   pipeRdr,
+		re:       re,
+		nameInd:  nameInd,
+		filename: filename,
 	}
 
+	// TODO: have a separate implementation for reading the full file vs individual lines
 	// run pipe handler in goroutine
 	go r.handlePipe(pipeWrite)
 
@@ -69,7 +72,7 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 
 	// for each result, build arg map, call action, handle response
 	for _, matchIndexes := range matchIndexList {
-		args := map[string]string{}
+		regexpMatches := map[string]string{}
 		for name, i := range r.nameInd {
 			i1, i2 := i*2, (i*2)+1
 			if i2 >= len(matchIndexes) {
@@ -77,9 +80,14 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 				// TODO: should this fail/error
 				continue
 			}
-			args[name] = string(b[matchIndexes[i1]:matchIndexes[i2]])
+			regexpMatches[name] = string(b[matchIndexes[i1]:matchIndexes[i2]])
 		}
-		change, newVer, err := r.action.HandleMatch(r.conf.Name, r.conf.Source, args["Version"], args)
+		matchData := struct {
+			Source map[string]string
+		}{
+			Source: regexpMatches,
+		}
+		change, newVer, err := r.action.HandleMatch(r.filename, r.conf.Name, r.conf.Source, regexpMatches["Version"], matchData)
 		if err != nil {
 			pw.CloseWithError(err)
 			return
@@ -121,6 +129,13 @@ func (r *reScan) Read(b []byte) (int, error) {
 }
 
 func (r *reScan) Close() error {
-	_, _ = io.ReadAll(r.outRdr)
-	return r.srcRdr.Close()
+	_, err1 := io.Copy(io.Discard, r.outRdr)
+	err2 := r.srcRdr.Close()
+	if err1 != nil {
+		return err1
+	}
+	if err2 != nil {
+		return err2
+	}
+	return nil
 }

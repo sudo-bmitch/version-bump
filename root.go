@@ -145,23 +145,32 @@ func getConf() (*config.Config, error) {
 	return config.LoadFile(rootOpts.confFile)
 }
 
-func procFile(filename string, fileConf string, conf *config.Config, act *action.Action) error {
+func procFile(filename string, fileConf string, conf *config.Config, act *action.Action) (err error) {
+	var lastCloser io.Closer // closing the last reader propagates through all readers
+	defer func() {
+		if lastCloser != nil {
+			newErr := lastCloser.Close()
+			if newErr != nil && err == nil {
+				err = newErr
+			}
+		}
+	}()
 	fh, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
-	defer fh.Close()
+	lastCloser = fh
 	var curFH io.ReadCloser
 	curFH = fh
 	for _, s := range conf.Files[fileConf].Scans {
 		if _, ok := conf.Scans[s]; !ok {
 			return fmt.Errorf("missing scan config: %s, file config: %s, reading file: %s", s, fileConf, filename)
 		}
-		curScan, err := scan.New(*conf.Scans[s], curFH, act)
+		curScan, err := scan.New(*conf.Scans[s], curFH, act, filename)
 		if err != nil {
 			return err
 		}
-		defer curScan.Close()
+		lastCloser = curScan
 		curFH = curScan
 	}
 	_, err = io.Copy(io.Discard, curFH)

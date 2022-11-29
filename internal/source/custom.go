@@ -3,22 +3,32 @@ package source
 import (
 	"fmt"
 	"os/exec"
+	"strings"
+
+	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
 const (
 	customCmd = "cmd"
 )
 
-type custom struct{}
+type custom struct {
+	conf config.Source
+}
 
-func (c custom) Get(args map[string]string) (string, error) {
+func newCustom(conf config.Source) Source {
+	return custom{conf: conf}
+}
+
+func (c custom) Get(data interface{}) (string, error) {
 	// TODO: add support for exec, bypassing the shell, which means arg values need to also support arrays
-	if _, ok := args[customCmd]; !ok {
+	if _, ok := c.conf.Args[customCmd]; !ok {
 		return "", fmt.Errorf("custom source requires a cmd arg")
 	}
-	out, err := exec.Command("/bin/sh", "-c", args[customCmd]).Output()
+	out, err := exec.Command("/bin/sh", "-c", c.conf.Args[customCmd]).Output()
 	if err != nil {
-		return "", fmt.Errorf("failed running %s: %w", args[customCmd], err)
+		return "", fmt.Errorf("failed running %s: %w", c.conf.Args[customCmd], err)
 	}
-	return string(out), nil
+	outS := strings.TrimSpace(string(out))
+	return outS, nil
 }

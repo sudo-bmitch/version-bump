@@ -21,7 +21,7 @@ sources:
     type: "custom"
     args:
       cmd: "date +%d"
-  "example-sec":
+  "shell-sec":
     type: "custom"
     args:
       cmd: "date +%S"
