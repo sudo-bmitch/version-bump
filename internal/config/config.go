@@ -10,19 +10,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Run specifies runtime configuration settings
-type Run struct {
-	Action runAction
-	DryRun bool
-}
-
-type runAction int
-
-const (
-	ActionScan runAction = iota
-	ActionUpdate
-)
-
 // File defines a file to process for version bumps
 type File struct {
 	Name  string   `yaml:"-" json:"-"`         // Name is a filename or glob to match against

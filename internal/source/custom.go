@@ -21,6 +21,7 @@ func newCustom(conf config.Source) Source {
 }
 
 func (c custom) Get(data interface{}) (string, error) {
+	// TODO: add templating support
 	// TODO: add support for exec, bypassing the shell, which means arg values need to also support arrays
 	if _, ok := c.conf.Args[customCmd]; !ok {
 		return "", fmt.Errorf("custom source requires a cmd arg")
@@ -31,4 +32,9 @@ func (c custom) Get(data interface{}) (string, error) {
 	}
 	outS := strings.TrimSpace(string(out))
 	return outS, nil
+}
+
+func (c custom) Key(data interface{}) (string, error) {
+	// TODO: add templating support
+	return c.conf.Key, nil
 }

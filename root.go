@@ -4,13 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/sudo-bmitch/version-bump/internal/action"
 	"github.com/sudo-bmitch/version-bump/internal/config"
 	"github.com/sudo-bmitch/version-bump/internal/filesearch"
+	"github.com/sudo-bmitch/version-bump/internal/lockfile"
 	"github.com/sudo-bmitch/version-bump/internal/scan"
 	"github.com/sudo-bmitch/version-bump/internal/template"
 	"github.com/sudo-bmitch/version-bump/internal/version"
@@ -18,12 +21,15 @@ import (
 
 const (
 	defaultConf = ".version-bump.yml"
+	defaultLock = ".version-bump.lock"
 	envConf     = "VERSION_BUMP_CONF"
+	envLock     = "VERSION_BUMP_LOCK"
 )
 
 var rootOpts struct {
 	chdir     string
 	confFile  string
+	lockFile  string
 	dryrun    bool
 	verbosity string
 	logopts   []string
@@ -75,23 +81,36 @@ func init() {
 }
 
 func runScan(cmd *cobra.Command, args []string) error {
+	origDir := "."
 	// parse config
 	conf, err := getConf()
 	if err != nil {
 		return err
 	}
+	locks, err := getLocks()
+	if err != nil {
+		return fmt.Errorf("failed to load lockfile: %w", err)
+	}
+
 	// cd to appropriate location
 	if !flagChanged(cmd, "chdir") {
 		rootOpts.chdir = filepath.Dir(rootOpts.confFile)
 	}
-	err = os.Chdir(rootOpts.chdir)
-	if err != nil {
-		return err
+	if rootOpts.chdir != "." {
+		origDir, err = os.Getwd()
+		if err != nil {
+			return err
+		}
+		err = os.Chdir(rootOpts.chdir)
+		if err != nil {
+			return err
+		}
 	}
 
-	confRun := config.Run{
-		Action: config.ActionScan,
+	confRun := &action.Opts{
+		Action: action.ActionScan,
 		DryRun: rootOpts.dryrun,
+		Locks:  locks,
 	}
 	act := action.New(confRun, *conf)
 
@@ -113,6 +132,21 @@ func runScan(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+	}
+	err = act.Done()
+	if err != nil {
+		return err
+	}
+
+	if origDir != "." {
+		err = os.Chdir(origDir)
+		if err != nil {
+			return err
+		}
+	}
+	err = saveLocks(locks)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -141,8 +175,38 @@ func getConf() (*config.Config, error) {
 	if rootOpts.confFile == "" {
 		rootOpts.confFile = defaultConf
 	}
-
 	return config.LoadFile(rootOpts.confFile)
+}
+
+func getLocks() (*lockfile.Locks, error) {
+	if rootOpts.lockFile == "" {
+		if file, ok := os.LookupEnv(envLock); ok {
+			rootOpts.lockFile = file
+		}
+	}
+	// fall back to changing conf filename
+	if rootOpts.lockFile == "" && rootOpts.confFile != "" {
+		rootOpts.lockFile = strings.TrimSuffix(rootOpts.confFile, filepath.Ext(rootOpts.confFile)) + ".lock"
+	}
+	// fall back to fixed name
+	if rootOpts.lockFile == "" {
+		rootOpts.lockFile = defaultLock
+	}
+	l, err := lockfile.LoadFile(rootOpts.lockFile)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
+		l = lockfile.New()
+	}
+	return l, nil
+}
+
+func saveLocks(l *lockfile.Locks) error {
+	if rootOpts.lockFile == "" {
+		return fmt.Errorf("lockfile not defined")
+	}
+	return lockfile.SaveFile(rootOpts.lockFile, l)
 }
 
 func procFile(filename string, fileConf string, conf *config.Config, act *action.Action) (err error) {

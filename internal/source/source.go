@@ -10,8 +10,8 @@ import (
 
 type Source interface {
 	// Get returns the version from upstream
-	// TODO: change input to the config for source and the scan match
 	Get(data interface{}) (string, error)
+	Key(data interface{}) (string, error)
 }
 
 var sourceTypes map[string]func(config.Source) Source = map[string]func(config.Source) Source{
