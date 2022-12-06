@@ -95,7 +95,7 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 		// write up to version field
 		verI1 := r.nameInd["Version"] * 2
 		verI2 := verI1 + 1
-		if matchIndexes[verI1] < lastIndex {
+		if lastIndex < matchIndexes[verI1] {
 			_, err = pw.Write(b[lastIndex:matchIndexes[verI1]])
 			if err != nil {
 				pw.CloseWithError(err)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -44,21 +45,42 @@ var rootCmd = &cobra.Command{
 	SilenceErrors: true,
 }
 
-// TODO:
 // check
+var checkCmd = &cobra.Command{
+	Use:   "check <file list>",
+	Short: "Check versions in files compared to sources",
+	Long: `Check each file identified in the configuration for versions.
+Compare the version to the upstream source. Report any version mismatches.
+Files or directories to scan should be passed as arguments, with the current dir as the default.
+By default, the current directory is changed to the location of the config file.`,
+	RunE: runAction,
+}
+
 // update
+var updateCmd = &cobra.Command{
+	Use:   "update <file list>",
+	Short: "Update versions in files using upstream sources",
+	Long: `Scan each file identified in the configuration for versions.
+Compare the version to the upstream source.
+Update old versions, update the lock file, and report changes.
+Files or directories to scan should be passed as arguments, with the current dir as the default.
+By default, the current directory is changed to the location of the config file.`,
+	RunE: runAction,
+}
+
+// TODO:
 // set
 // reset
 
 // scan
 var scanCmd = &cobra.Command{
 	Use:   "scan <file list>",
-	Short: "Scan for versions in files",
+	Short: "Scan versions from files into lock file",
 	Long: `Scan each file identified in the configuration for versions.
 Store those versions in lock file.
 Files or directories to scan should be passed as arguments, with the current dir as the default.
 By default, the current directory is changed to the location of the config file.`,
-	RunE: runScan,
+	RunE: runAction,
 }
 
 var versionCmd = &cobra.Command{
@@ -70,17 +92,18 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	scanCmd.Flags().StringVarP(&rootOpts.chdir, "chdir", "", "", "Changes to requested directory, defaults to config file location")
-	scanCmd.Flags().StringVarP(&rootOpts.confFile, "conf", "c", "", "Config file to load")
-	scanCmd.Flags().BoolVarP(&rootOpts.dryrun, "dry-run", "", false, "Dry run")
+	for _, cmd := range []*cobra.Command{checkCmd, scanCmd, updateCmd} {
+		cmd.Flags().StringVarP(&rootOpts.chdir, "chdir", "", "", "Changes to requested directory, defaults to config file location")
+		cmd.Flags().StringVarP(&rootOpts.confFile, "conf", "c", "", "Config file to load")
+		cmd.Flags().BoolVarP(&rootOpts.dryrun, "dry-run", "", false, "Dry run")
+		rootCmd.AddCommand(cmd)
+	}
 
 	versionCmd.Flags().StringVarP(&rootOpts.format, "format", "", "{{printPretty .}}", "Format output with go template syntax")
-
-	rootCmd.AddCommand(scanCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 
-func runScan(cmd *cobra.Command, args []string) error {
+func runAction(cmd *cobra.Command, args []string) error {
 	origDir := "."
 	// parse config
 	conf, err := getConf()
@@ -108,9 +131,18 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 
 	confRun := &action.Opts{
-		Action: action.ActionScan,
 		DryRun: rootOpts.dryrun,
 		Locks:  locks,
+	}
+	switch cmd.Name() {
+	case "check":
+		confRun.Action = action.ActionCheck
+	case "scan":
+		confRun.Action = action.ActionScan
+	case "update":
+		confRun.Action = action.ActionUpdate
+	default:
+		return fmt.Errorf("unhandled command %s", cmd.Name())
 	}
 	act := action.New(confRun, *conf)
 
@@ -137,6 +169,11 @@ func runScan(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	// display changes
+	for _, change := range confRun.Changes {
+		fmt.Printf("Version changed: filename=%s, source=%s, scan=%s, old=%s, new=%s\n",
+			change.Filename, change.Source, change.Scan, change.Orig, change.New)
+	}
 
 	if origDir != "." {
 		err = os.Chdir(origDir)
@@ -144,9 +181,14 @@ func runScan(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	err = saveLocks(locks)
-	if err != nil {
-		return err
+	if !rootOpts.dryrun {
+		switch confRun.Action {
+		case action.ActionScan, action.ActionUpdate:
+			err = saveLocks(locks)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -210,22 +252,22 @@ func saveLocks(l *lockfile.Locks) error {
 }
 
 func procFile(filename string, fileConf string, conf *config.Config, act *action.Action) (err error) {
-	var lastCloser io.Closer // closing the last reader propagates through all readers
+	// TODO: for large files, write to a tmp file instead of using an in-memory buffer
+	origBytes, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	origRdr := bytes.NewReader(origBytes)
+	var curFH io.ReadCloser
+	curFH = io.NopCloser(origRdr)
 	defer func() {
-		if lastCloser != nil {
-			newErr := lastCloser.Close()
+		if curFH != nil {
+			newErr := curFH.Close()
 			if newErr != nil && err == nil {
 				err = newErr
 			}
 		}
 	}()
-	fh, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	lastCloser = fh
-	var curFH io.ReadCloser
-	curFH = fh
 	for _, s := range conf.Files[fileConf].Scans {
 		if _, ok := conf.Scans[s]; !ok {
 			return fmt.Errorf("missing scan config: %s, file config: %s, reading file: %s", s, fileConf, filename)
@@ -234,9 +276,41 @@ func procFile(filename string, fileConf string, conf *config.Config, act *action
 		if err != nil {
 			return err
 		}
-		lastCloser = curScan
 		curFH = curScan
 	}
-	_, err = io.Copy(io.Discard, curFH)
+	finalBytes, err := io.ReadAll(curFH)
+	if err != nil {
+		return err
+	}
+	// if the file was changed, output to a tmpfile and then copy/replace orig file
+	if !bytes.Equal(origBytes, finalBytes) {
+		dir := filepath.Dir(filename)
+		tmp, err := os.CreateTemp(dir, filepath.Base(filename))
+		if err != nil {
+			return fmt.Errorf("unable to create temp file in %s: %w", dir, err)
+		}
+		tmpName := tmp.Name()
+		_, err = tmp.Write(finalBytes)
+		tmp.Close()
+		defer func() {
+			if err != nil {
+				os.Remove(tmpName)
+			}
+		}()
+		if err != nil {
+			return fmt.Errorf("failed to write temp file %s: %w", tmpName, err)
+		}
+		// update permissions to match existing file or 0644
+		mode := os.FileMode(0644)
+		stat, err := os.Stat(filename)
+		if err == nil && stat.Mode().IsRegular() {
+			mode = stat.Mode()
+		}
+		if err := os.Chmod(tmpName, mode); err != nil {
+			return fmt.Errorf("failed to adjust permissions on file %s: %w", filename, err)
+		}
+		// move temp file to target filename
+		err = os.Rename(tmpName, filename)
+	}
 	return err
 }

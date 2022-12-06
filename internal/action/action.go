@@ -16,7 +16,7 @@ type Opts struct {
 	Action  runAction       // which action to run
 	DryRun  bool            // when set, lock file and scanned files are unchanged
 	Locks   *lockfile.Locks // lock entries to use or set
-	Changes []Change        // results of the run
+	Changes []*Change       // results of the run
 }
 
 type runAction int
@@ -32,6 +32,7 @@ const (
 // Change lists changes found or made to scanned files
 type Change struct {
 	Filename string // filename modified
+	Source   string // name of the source
 	Scan     string // name of the scan
 	Key      string // key of the scan
 	Orig     string // previous version
@@ -94,22 +95,31 @@ func (a *Action) HandleMatch(filename string, scan string, sourceName string, ve
 		curVer = version
 	}
 
-	// TODO: store any changes when version != curVer
+	// store any changes when version != curVer
 	if version != curVer {
-		fmt.Printf("Version changed: filename=%s, source=%s, scan=%s, old=%s, new=%s\n", filename, sourceName, scan, version, curVer)
+		a.opts.Changes = append(a.opts.Changes, &Change{
+			Filename: filename,
+			Source:   sourceName,
+			Scan:     scan,
+			Key:      key,
+			Orig:     version,
+			New:      curVer,
+		})
+	}
+
+	// for dry-run, never return a change
+	if a.opts.DryRun {
+		return false, version, nil
 	}
 
 	// update lock file
-	if !a.opts.DryRun {
-		switch a.opts.Action {
-		case ActionScan, ActionUpdate:
-			err = a.opts.Locks.Set(sourceName, key, version)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not set the lock for %s/%s: %v\n", sourceName, key, err)
-				return false, "", err
-			}
+	switch a.opts.Action {
+	case ActionScan, ActionUpdate:
+		err = a.opts.Locks.Set(sourceName, key, version)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "could not set the lock for %s/%s: %v\n", sourceName, key, err)
+			return false, "", err
 		}
 	}
-
 	return version != curVer, curVer, nil
 }
