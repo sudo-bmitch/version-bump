@@ -115,7 +115,7 @@ func (a *Action) HandleMatch(filename string, scan string, sourceName string, ve
 	// update lock file
 	switch a.opts.Action {
 	case ActionScan, ActionUpdate:
-		err = a.opts.Locks.Set(sourceName, key, version)
+		err = a.opts.Locks.Set(sourceName, key, curVer)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "could not set the lock for %s/%s: %v\n", sourceName, key, err)
 			return false, "", err
