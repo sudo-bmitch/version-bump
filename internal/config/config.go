@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/sudo-bmitch/version-bump/internal/template"
 	"gopkg.in/yaml.v2"
 )
 
@@ -47,6 +48,14 @@ type Config struct {
 	Scans   map[string]*Scan   `yaml:"scans" json:"scans"`
 	Sources map[string]*Source `yaml:"sources" json:"sources"`
 	Scripts map[string]*Script `yaml:"scripts" json:"scripts"`
+}
+
+// TemplateData is passed from the scan to the source for performing a version lookup
+type TemplateData struct {
+	Filename   string            // name of the file being updated
+	ScanArgs   map[string]string // args to the scan
+	ScanMatch  map[string]string // result of a match
+	SourceArgs map[string]string // args to the source
 }
 
 // New creates an empty config
@@ -92,4 +101,25 @@ func LoadFile(filename string) (*Config, error) {
 	}
 	defer file.Close()
 	return LoadReader(file)
+}
+
+func (s Source) ExpandTemplate(data interface{}) (Source, error) {
+	sExp := Source{
+		Name: s.Name,
+		Type: s.Type,
+		Args: map[string]string{},
+	}
+	var err error
+	sExp.Key, err = template.String(s.Key, data)
+	if err != nil {
+		return sExp, err
+	}
+	for k := range s.Args {
+		sExp.Args[k], err = template.String(s.Args[k], data)
+		if err != nil {
+			return sExp, err
+		}
+	}
+	// TODO: support exec field too?
+	return sExp, nil
 }

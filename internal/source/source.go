@@ -10,8 +10,8 @@ import (
 
 type Source interface {
 	// Get returns the version from upstream
-	Get(data interface{}) (string, error)
-	Key(data interface{}) (string, error)
+	Get(data config.TemplateData) (string, error)
+	Key(data config.TemplateData) (string, error)
 }
 
 var sourceTypes map[string]func(config.Source) Source = map[string]func(config.Source) Source{

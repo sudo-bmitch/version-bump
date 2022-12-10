@@ -4,7 +4,6 @@ package action
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/sudo-bmitch/version-bump/internal/config"
 	"github.com/sudo-bmitch/version-bump/internal/lockfile"
@@ -63,19 +62,18 @@ func (a *Action) Done() error {
 // - change bool: should the scan modify the version
 // - version string: version the scan should use
 // - err error: not nil on any failure
-func (a *Action) HandleMatch(filename string, scan string, sourceName string, version string, data interface{}) (bool, string, error) {
+func (a *Action) HandleMatch(filename string, scan string, sourceName string, version string, data config.TemplateData) (bool, string, error) {
 	if _, ok := a.conf.Sources[sourceName]; !ok {
 		return false, "", fmt.Errorf("source not found: %s", sourceName)
 	}
 	s, err := source.Get(*a.conf.Sources[sourceName])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not get the source: %v\n", err)
-		return false, "", err
+		return false, "", fmt.Errorf("could not get source: %w", err)
 	}
+	data.SourceArgs = a.conf.Sources[sourceName].Args
 	key, err := s.Key(data)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not get source key: %v\n", err)
-		return false, "", err
+		return false, "", fmt.Errorf("could not get source key: %w", err)
 	}
 	// determine curVer
 	var curVer string
@@ -84,8 +82,7 @@ func (a *Action) HandleMatch(filename string, scan string, sourceName string, ve
 		// query from source
 		curVer, err = s.Get(data)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "could not get the current version: %v\n", err)
-			return false, "", err
+			return false, "", fmt.Errorf("could not get current version: %w", err)
 		}
 	case ActionSet, ActionReset:
 		// TODO: get curVer from lock, requires getting the key from the source
@@ -117,8 +114,7 @@ func (a *Action) HandleMatch(filename string, scan string, sourceName string, ve
 	case ActionScan, ActionUpdate:
 		err = a.opts.Locks.Set(sourceName, key, curVer)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "could not set the lock for %s/%s: %v\n", sourceName, key, err)
-			return false, "", err
+			return false, "", fmt.Errorf("could not set lock for %s/%s: %w", sourceName, key, err)
 		}
 	}
 	return version != curVer, curVer, nil

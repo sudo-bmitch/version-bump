@@ -8,20 +8,18 @@ files:
 scans:
   "example-sh":
     type: "regexp"
-    source: "example-day"
+    source: "date"
     args:
       regexp: "^example_day=(?P<Version>\\d+)"
+      dateFmt: "+%d"
   "shell-sec":
     type: "regexp"
-    source: "shell-sec"
+    source: "date"
     args:
       regexp: "^example_sec=(?P<Version>\\d+)"
+      dateFmt: "+%S"
 sources:
-  "example-day":
+  "date":
     type: "custom"
     args:
-      cmd: "date +%d"
-  "shell-sec":
-    type: "custom"
-    args:
-      cmd: "date +%S"
+      cmd: "date {{ .ScanArgs.dateFmt }}"

@@ -69,6 +69,10 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 	}
 	// scan buf for all regexp matches
 	matchIndexList := r.re.FindAllSubmatchIndex(b, -1)
+	matchData := config.TemplateData{
+		Filename: r.filename,
+		ScanArgs: r.conf.Args,
+	}
 
 	// for each result, build arg map, call action, handle response
 	for _, matchIndexes := range matchIndexList {
@@ -82,11 +86,7 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 			}
 			regexpMatches[name] = string(b[matchIndexes[i1]:matchIndexes[i2]])
 		}
-		matchData := struct {
-			Source map[string]string
-		}{
-			Source: regexpMatches,
-		}
+		matchData.ScanMatch = regexpMatches
 		change, newVer, err := r.action.HandleMatch(r.filename, r.conf.Name, r.conf.Source, regexpMatches["Version"], matchData)
 		if err != nil {
 			pw.CloseWithError(err)
