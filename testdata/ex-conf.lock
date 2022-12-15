@@ -1,2 +1,3 @@
-{"name":"shell-sec","key":"","version":"20"}
-{"name":"example-day","key":"","version":"5"}
+{"name":"date","key":"+%S","version":"22"}
+{"name":"docker-digest","key":"alpine:latest","version":"sha256:8914eb54f968791faf6a8638949e480fef81e697984fba772b3976835194c6d4"}
+{"name":"manual","key":"day","version":"07"}

@@ -8,7 +8,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
+
+	"golang.org/x/exp/maps"
 )
 
 // Lock stores known versions from a scan or source
@@ -96,8 +99,13 @@ func SaveWriter(write io.Writer, l *Locks) error {
 	if l == nil || l.Lock == nil {
 		return fmt.Errorf("cannot save nil lockfile")
 	}
-	for name := range l.Lock {
-		for key := range l.Lock[name] {
+	// sort to keep the file deterministic
+	names := maps.Keys(l.Lock)
+	sort.Strings(names)
+	for _, name := range names {
+		keys := maps.Keys(l.Lock[name])
+		sort.Strings(keys)
+		for _, key := range keys {
 			if err := json.NewEncoder(write).Encode(l.Lock[name][key]); err != nil {
 				return err
 			}

@@ -5,13 +5,19 @@ files:
   "**/*.sh":
     scans:
       - shell-sec
+      - shell-image
 scans:
   "example-sh":
     type: "regexp"
-    source: "date"
+    source: "manual"
     args:
       regexp: "^example_day=(?P<Version>\\d+)"
-      dateFmt: "+%d"
+      key: "day"
+  "shell-image":
+    type: "regexp"
+    source: "docker-digest"
+    args:
+      regexp: "^image=(?P<Image>[a-z0-9:]+)@(?P<Version>sha256:[0-9a-f]+)"
   "shell-sec":
     type: "regexp"
     source: "date"
@@ -21,5 +27,14 @@ scans:
 sources:
   "date":
     type: "custom"
+    key: "{{ .ScanArgs.dateFmt }}"
     args:
       cmd: "date {{ .ScanArgs.dateFmt }}"
+  "manual":
+    type: "manual"
+    key: "{{ .ScanArgs.key }}"
+  "docker-digest":
+    type: "registry"
+    key: "{{ .ScanMatch.Image }}"
+    args:
+      image: "{{ .ScanMatch.Image }}"

@@ -15,9 +15,10 @@ type Source interface {
 }
 
 var sourceTypes map[string]func(config.Source) Source = map[string]func(config.Source) Source{
-	"custom": newCustom,
-	"manual": newManual,
-	// TODO: add url (headers, parse json, parse regex), docker tag, git tag, git release, git commit
+	"custom":   newCustom,
+	"manual":   newManual,
+	"registry": newRegistry,
+	// TODO: add url (headers, parse json, parse regex), git tag, git release, git commit
 }
 
 var mu sync.Mutex
