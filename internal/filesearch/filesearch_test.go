@@ -26,7 +26,14 @@ func TestPattern(t *testing.T) {
 			expect:   false,
 		},
 		{
-			name:     "match",
+			name:     "match file",
+			expr:     "filename",
+			filename: "filename",
+			prefix:   false,
+			expect:   true,
+		},
+		{
+			name:     "match path",
 			expr:     "path/to/file.txt",
 			filename: "path/to/file.txt",
 			prefix:   false,
@@ -62,6 +69,13 @@ func TestPattern(t *testing.T) {
 		},
 		{
 			name:     "wildcard ext",
+			expr:     "file*",
+			filename: "file",
+			prefix:   false,
+			expect:   true,
+		},
+		{
+			name:     "wildcard ext path",
 			expr:     "path/to/file.*",
 			filename: "path/to/file.txt",
 			prefix:   false,

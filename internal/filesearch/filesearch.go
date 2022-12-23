@@ -89,6 +89,10 @@ func (w *walk) Next() (string, string, error) {
 		if fi.IsDir() {
 			// remove/skip if no matching w.conf prefix
 			foundPrefix := false
+			// always search the current dir, regexp will not otherwise match this
+			if filename == "." || filename == "/" {
+				foundPrefix = true
+			}
 			for i := 0; i < len(w.confPat) && !foundPrefix; i++ {
 				if w.confPat[i].match(filename, true) {
 					foundPrefix = true
