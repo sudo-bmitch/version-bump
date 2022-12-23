@@ -1,0 +1,98 @@
+name: Go
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        gover: ["1.18", "1.19"]
+
+    env:
+      RELEASE_GO_VER: "1.19"
+
+    steps:
+
+    - name: "Set up Go ${{ matrix.gover }}"
+      uses: actions/setup-go@v3
+      with:
+        go-version: "${{ matrix.gover }}"
+      id: go
+
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+
+    - name: Verify go fmt
+      run: test -z "$(go fmt ./...)"
+
+    - name: Verify go vet
+      run: test -z "$(go vet ./...)"
+
+    - name: Test
+      run: make test
+
+    - name: Linting
+      run: make lint
+
+    - name: Build artifacts
+      if: startsWith( github.ref, 'refs/tags/v' ) || github.ref == 'refs/heads/main'
+      run: make artifacts
+
+    - name: Gather release details
+      if: startsWith( github.ref, 'refs/tags/v' ) && github.repository_owner == 'sudo-bmitch' && matrix.gover == env.RELEASE_GO_VER
+      id: release_details
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        VALID_RELEASE=false
+        if [ -f "release.md" ] && grep -q "Release $VERSION" release.md; then
+          VALID_RELEASE=true
+        fi
+        RELEASE_NOTES=$(cat release.md || echo release notes unavailable)
+        # escape % and linefeeds
+        RELEASE_NOTES="${RELEASE_NOTES//'%'/'%25'}"
+        RELEASE_NOTES="${RELEASE_NOTES//$'\n'/'%0A'}"
+        RELEASE_NOTES="${RELEASE_NOTES//$'\r'/'%0D'}"
+        echo ::set-output name=version::${VERSION}
+        echo ::set-output name=valid::${VALID_RELEASE}
+        echo ::set-output name=release_notes::${RELEASE_NOTES}
+
+    - name: Create release
+      if: steps.release_details.outputs.valid == 'true' && matrix.gover == env.RELEASE_GO_VER
+      id: release_create
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.release_details.outputs.version }}
+        body: ${{ steps.release_details.outputs.release_notes }}
+        draft: false
+        prerelease: false
+        files: |
+          ./artifacts/version-bump-darwin-amd64
+          ./artifacts/version-bump-linux-amd64
+          ./artifacts/version-bump-linux-arm64
+          ./artifacts/version-bump-linux-ppc64le
+          ./artifacts/version-bump-linux-s390x
+          ./artifacts/version-bump-windows-amd64.exe
+
+    - name: Save artifacts
+      if: github.ref == 'refs/heads/main' && matrix.gover == env.RELEASE_GO_VER
+      uses: actions/upload-artifact@v3
+      with:
+        name: binaries
+        path: ./artifacts/
+        retention-days: 7
