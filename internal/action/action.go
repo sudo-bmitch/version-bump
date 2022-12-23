@@ -105,7 +105,7 @@ func (a *Action) HandleMatch(filename string, scan string, sourceName string, ve
 	}
 
 	// for dry-run, never return a change
-	if a.opts.DryRun {
+	if a.opts.DryRun || a.opts.Action == ActionCheck {
 		return false, version, nil
 	}
 

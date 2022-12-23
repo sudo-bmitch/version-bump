@@ -188,6 +188,10 @@ func runAction(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
+		case action.ActionCheck:
+			if len(confRun.Changes) > 0 {
+				return fmt.Errorf("changes detected")
+			}
 		}
 	}
 	return nil
