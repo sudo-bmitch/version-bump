@@ -37,7 +37,7 @@ LABEL maintainer="" \
       org.opencontainers.image.title="version-bump" \
       org.opencontainers.image.description=""
 
-FROM scratch as release
+FROM scratch as release-scratch
 COPY --from=build /etc/passwd /etc/group /etc/
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build --chown=appuser /home/appuser /home/appuser
