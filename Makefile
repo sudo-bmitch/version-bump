@@ -1,9 +1,9 @@
-# COMMANDS?=version-bump
-# BINARIES?=$(addprefix bin/,$(COMMANDS))
-# IMAGES?=$(addprefix docker-,$(COMMANDS))
-# ARTIFACT_PLATFORMS?=linux-amd64 linux-arm64 linux-ppc64le linux-s390x darwin-amd64 darwin-arm64 windows-amd64.exe
-# ARTIFACTS?=$(foreach cmd,$(addprefix artifacts/,$(COMMANDS)),$(addprefix $(cmd)-,$(ARTIFACT_PLATFORMS)))
-# TEST_PLATFORMS?=linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
+COMMANDS?=version-bump
+BINARIES?=$(addprefix bin/,$(COMMANDS))
+IMAGES?=$(addprefix docker-,$(COMMANDS))
+ARTIFACT_PLATFORMS?=linux-amd64 linux-arm64 linux-ppc64le linux-s390x darwin-amd64 darwin-arm64 windows-amd64.exe
+ARTIFACTS?=$(foreach cmd,$(addprefix artifacts/,$(COMMANDS)),$(addprefix $(cmd)-,$(ARTIFACT_PLATFORMS)))
+TEST_PLATFORMS?=linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
 VCS_REPO?="https://github.com/sudo-bmitch/version-bump.git"
 VCS_REF?=$(shell git rev-list -1 HEAD)
 ifneq ($(shell git status --porcelain 2>/dev/null),)
@@ -13,8 +13,8 @@ VCS_DATE?=$(shell date -d "@$(shell git log -1 --format=%at)" +%Y-%m-%dT%H:%M:%S
 VCS_TAG?=$(shell git describe --tags --abbrev=0 2>/dev/null || true)
 LD_FLAGS?=-s -w -extldflags -static -buildid=
 GO_BUILD_FLAGS?=-trimpath -ldflags "$(LD_FLAGS)" -tags nolegacy
-# DOCKERFILE_EXT?=$(shell if docker build --help 2>/dev/null | grep -q -- '--progress'; then echo ".buildkit"; fi)
-# DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
+DOCKERFILE_EXT?=$(shell if docker build --help 2>/dev/null | grep -q -- '--progress'; then echo ".buildkit"; fi)
+DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 
@@ -45,16 +45,16 @@ lint-md: .FORCE ## Run linting for markdown
 vendor: ## Vendor Go modules
 	go mod vendor
 
-binaries: vendor bin/version-bump ## Build Go binaries
+binaries: vendor $(BINARIES) ## Build Go binaries
 
 bin/version-bump: .FORCE
 	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o bin/version-bump .
 
-# docker: $(IMAGES) ## Build Docker images
+docker: $(IMAGES) ## Build the docker image
 
-# docker-%: .FORCE
-# 	docker build -t regclient/$* -f build/Dockerfile.$*$(DOCKERFILE_EXT) $(DOCKER_ARGS) .
-# 	docker build -t regclient/$*:alpine -f build/Dockerfile.$*$(DOCKERFILE_EXT) --target release-alpine $(DOCKER_ARGS) .
+docker-version-bump: .FORCE
+	docker build -t sudo-bmitch/version-bump -f Dockerfile$(DOCKERFILE_EXT) $(DOCKER_ARGS) .
+	docker build -t sudo-bmitch/version-bump:alpine -f Dockerfile$(DOCKERFILE_EXT) --target release-alpine $(DOCKER_ARGS) .
 
 # oci-image: $(addprefix oci-image-,$(COMMANDS)) ## Build reproducible images to an OCI Layout
 
@@ -62,28 +62,26 @@ bin/version-bump: .FORCE
 # 	build/oci-image.sh -r scratch -i "$*" -p "$(TEST_PLATFORMS)"
 # 	build/oci-image.sh -r alpine  -i "$*" -p "$(TEST_PLATFORMS)" -b "alpine:3"
 
-# test-docker: $(addprefix test-docker-,$(COMMANDS)) ## Build multi-platform docker images (but do not tag)
+test-docker: $(addprefix test-docker-,$(COMMANDS)) ## Test the docker multi-platform image builds
 
-# test-docker-%:
-# 	docker buildx build --platform="$(TEST_PLATFORMS)" -f build/Dockerfile.$*.buildkit .
-# 	docker buildx build --platform="$(TEST_PLATFORMS)" -f build/Dockerfile.$*.buildkit --target release-alpine .
+test-docker-version-bump:
+	docker buildx build --platform="$(TEST_PLATFORMS)" -f Dockerfile.buildkit .
+	docker buildx build --platform="$(TEST_PLATFORMS)" -f Dockerfile.buildkit --target release-alpine .
 
-# artifacts: $(ARTIFACTS) ## Generate artifacts
+artifacts: $(ARTIFACTS) ## Generate artifacts
 
-# artifact-pre:
-# 	mkdir -p artifacts
+artifact-pre:
+	mkdir -p artifacts
 
-# artifacts/%: artifact-pre .FORCE
-# 	@target="$*"; \
-# 	command="$${target%%-*}"; \
-# 	platform_ext="$${target#*-}"; \
-# 	platform="$${platform_ext%.*}"; \
-# 	export GOOS="$${platform%%-*}"; \
-# 	export GOARCH="$${platform#*-}"; \
-# 	echo export GOOS=$${GOOS}; \
-# 	echo export GOARCH=$${GOARCH}; \
-# 	echo go build ${GO_BUILD_FLAGS} -o "$@" ./cmd/$${command}/; \
-# 	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o "$@" ./cmd/$${command}/
+artifacts/version-bump-%: artifact-pre .FORCE
+	platform_ext="$*"; \
+	platform="$${platform_ext%.*}"; \
+	export GOOS="$${platform%%-*}"; \
+	export GOARCH="$${platform#*-}"; \
+	echo export GOOS=$${GOOS}; \
+	echo export GOARCH=$${GOARCH}; \
+	echo go build ${GO_BUILD_FLAGS} -o "$@" .; \
+	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o "$@" .
 
 $(GOPATH)/bin/staticcheck: 
 	go install "honnef.co/go/tools/cmd/staticcheck@latest"

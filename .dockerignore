@@ -1,0 +1,7 @@
+*
+!go.*
+!*.go
+!internal/
+!testdata/
+!vendor/
+!Makefile
