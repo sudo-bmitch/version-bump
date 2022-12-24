@@ -36,7 +36,7 @@ jobs:
         if [ "${{ matrix.type }}" != "scratch" ]; then
           EXT="-${{ matrix.type }}"
         fi
-        HUB_IMAGE=sudo-bmitch/version-bump
+        HUB_IMAGE=sudobmitch/version-bump
         GHCR_IMAGE=ghcr.io/sudo-bmitch/version-bump
         VERSION=noop
         if [ "${{ github.event_name }}" = "schedule" ]; then
