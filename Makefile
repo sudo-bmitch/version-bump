@@ -18,7 +18,7 @@ DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 
-.PHONY: all fmt vet test lint lint-go lint-md vendor binaries docker artifacts artifact-pre plugin-user plugin-host .FORCE
+.PHONY: all fmt vet test lint lint-go lint-md vendor binaries docker artifacts artifact-pre maint-version-bump .FORCE
 
 .FORCE:
 
@@ -82,6 +82,12 @@ artifacts/version-bump-%: artifact-pre .FORCE
 	echo export GOARCH=$${GOARCH}; \
 	echo go build ${GO_BUILD_FLAGS} -o "$@" .; \
 	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o "$@" .
+
+maint-version-check: bin/version-bump .FORCE ## Check versions of dependencies in this project
+	bin/version-bump check
+
+maint-version-update: bin/version-bump .FORCE ## Update versions of dependencies in this project
+	bin/version-bump update
 
 $(GOPATH)/bin/staticcheck: 
 	go install "honnef.co/go/tools/cmd/staticcheck@latest"
