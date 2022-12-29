@@ -69,7 +69,7 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 	}
 	// scan buf for all regexp matches
 	matchIndexList := r.re.FindAllSubmatchIndex(b, -1)
-	matchData := config.TemplateData{
+	matchData := config.SourceTmplData{
 		Filename: r.filename,
 		ScanArgs: r.conf.Args,
 	}

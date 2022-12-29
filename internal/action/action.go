@@ -62,7 +62,7 @@ func (a *Action) Done() error {
 // - change bool: should the scan modify the version
 // - version string: version the scan should use
 // - err error: not nil on any failure
-func (a *Action) HandleMatch(filename string, scan string, sourceName string, version string, data config.TemplateData) (bool, string, error) {
+func (a *Action) HandleMatch(filename string, scan string, sourceName string, version string, data config.SourceTmplData) (bool, string, error) {
 	if _, ok := a.conf.Sources[sourceName]; !ok {
 		return false, "", fmt.Errorf("source not found: %s", sourceName)
 	}

@@ -20,7 +20,7 @@ func newCustom(conf config.Source) Source {
 	return custom{conf: conf}
 }
 
-func (c custom) Get(data config.TemplateData) (string, error) {
+func (c custom) Get(data config.SourceTmplData) (string, error) {
 	confExp, err := c.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)
@@ -33,11 +33,13 @@ func (c custom) Get(data config.TemplateData) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed running %s: %w", confExp.Args[customCmd], err)
 	}
-	outS := strings.TrimSpace(string(out))
-	return outS, nil
+	verData := config.VersionTmplData{
+		Version: strings.TrimSpace(string(out)),
+	}
+	return procResult(confExp, verData)
 }
 
-func (c custom) Key(data config.TemplateData) (string, error) {
+func (c custom) Key(data config.SourceTmplData) (string, error) {
 	confExp, err := c.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)

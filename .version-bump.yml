@@ -12,19 +12,19 @@ scans:
     type: "regexp"
     source: "registry-digest-arg"
     args:
-      regexp: '^ARG ALPINE_VER=(?P<Tag>[a-z0-9\-\.]+)@(?P<Version>sha256:[0-9a-f]+)'
+      regexp: '^ARG ALPINE_VER=(?P<Tag>[a-z0-9\-\.]+)@(?P<Version>sha256:[0-9a-f]+)\s*$'
       image: "alpine"
   docker-arg-go:
     type: "regexp"
     source: "registry-digest-arg"
     args:
-      regexp: '^ARG GO_VER=(?P<Tag>[a-z0-9\-\.]+)@(?P<Version>sha256:[0-9a-f]+)'
+      regexp: '^ARG GO_VER=(?P<Tag>[a-z0-9\-\.]+)@(?P<Version>sha256:[0-9a-f]+)\s*$'
       image: "golang"
   gha-uses:
     type: "regexp"
     source: "gha-uses"
     args:
-      regexp: '^\s+uses: (?P<Repo>[^@]+)@(?P<Version>v\d+)\s*$'
+      regexp: '^\s+-?\s+uses: (?P<Repo>[^@]+)@(?P<Version>v\d+)\s*$'
 
 sources:
   registry-digest-arg:
