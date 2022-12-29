@@ -3,7 +3,6 @@ package source
 import (
 	"fmt"
 	"regexp"
-	"sort"
 
 	"github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
@@ -22,7 +21,7 @@ func newGit(conf config.Source) Source {
 	return gitSource{conf: conf}
 }
 
-func (g gitSource) Get(data config.TemplateData) (string, error) {
+func (g gitSource) Get(data config.SourceTmplData) (string, error) {
 	confExp, err := g.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)
@@ -53,12 +52,19 @@ func (g gitSource) getCommit(confExp config.Source) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	verData := config.VersionTmplData{
+		VerMap: map[string]string{},
+	}
 	for _, ref := range refs {
 		if ref.Name().String() == confExp.Args["ref"] || ref.Name().Short() == confExp.Args["ref"] {
-			return ref.Hash().String(), nil
+			// TODO: move filtering into procResult
+			verData.VerMap[ref.Name().Short()] = ref.Hash().String()
 		}
 	}
-	return "", fmt.Errorf("ref %s not found on %s", confExp.Args["ref"], confExp.Args["url"])
+	if len(verData.VerMap) == 0 {
+		return "", fmt.Errorf("ref %s not found on %s", confExp.Args["ref"], confExp.Args["url"])
+	}
+	return procResult(confExp, verData)
 }
 
 func (g gitSource) getTag(confExp config.Source) (string, error) {
@@ -73,22 +79,23 @@ func (g gitSource) getTag(confExp config.Source) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	verData := config.VersionTmplData{
+		VerMap: map[string]string{},
+	}
 	// find matching tags
-	tagMatches := []string{}
 	for _, ref := range refs {
 		if ref.Name().IsTag() && tagRE.MatchString(ref.Name().Short()) {
-			tagMatches = append(tagMatches, ref.Name().Short())
+			// TODO: move filtering into procResult
+			verData.VerMap[ref.Name().Short()] = ref.Name().Short()
 		}
 	}
-	if len(tagMatches) == 0 {
+	if len(verData.VerMap) == 0 {
 		return "", fmt.Errorf("no matching tags found")
 	}
-	// TODO: support other types of sorts (semver?)
-	sort.Strings(tagMatches)
-	return tagMatches[len(tagMatches)-1], nil
+	return procResult(confExp, verData)
 }
 
-func (g gitSource) Key(data config.TemplateData) (string, error) {
+func (g gitSource) Key(data config.SourceTmplData) (string, error) {
 	confExp, err := g.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)

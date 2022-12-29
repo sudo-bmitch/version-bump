@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"sort"
 
 	"github.com/regclient/regclient"
 	"github.com/regclient/regclient/types/ref"
@@ -25,7 +24,7 @@ func newRegistry(conf config.Source) Source {
 	return registry{conf: conf, rc: rc}
 }
 
-func (r registry) Get(data config.TemplateData) (string, error) {
+func (r registry) Get(data config.SourceTmplData) (string, error) {
 	confExp, err := r.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)
@@ -46,6 +45,7 @@ func (r registry) getTag(confExp config.Source) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to parse repo: %w", err)
 	}
+	// TODO: move filtering into procResult
 	tagExp, ok := confExp.Args["tagExp"]
 	if !ok {
 		return "", fmt.Errorf("tagExp not defined")
@@ -58,18 +58,18 @@ func (r registry) getTag(confExp config.Source) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to list tags: %w", err)
 	}
-	tagMatches := []string{}
+	verData := config.VersionTmplData{
+		VerMap: map[string]string{},
+	}
 	for _, tag := range tags.Tags {
 		if tagRE.Match([]byte(tag)) {
-			tagMatches = append(tagMatches, tag)
+			verData.VerMap[tag] = tag
 		}
 	}
-	if len(tagMatches) == 0 {
+	if len(verData.VerMap) == 0 {
 		return "", fmt.Errorf("no matching tags found")
 	}
-	// TODO: support other types of sorts (semver?)
-	sort.Strings(tagMatches)
-	return tagMatches[len(tagMatches)-1], nil
+	return procResult(confExp, verData)
 }
 
 func (r registry) getDigest(confExp config.Source) (string, error) {
@@ -85,10 +85,13 @@ func (r registry) getDigest(confExp config.Source) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to query image: %w", err)
 	}
-	return m.GetDescriptor().Digest.String(), nil
+	verData := config.VersionTmplData{
+		Version: m.GetDescriptor().Digest.String(),
+	}
+	return procResult(confExp, verData)
 }
 
-func (r registry) Key(data config.TemplateData) (string, error) {
+func (r registry) Key(data config.SourceTmplData) (string, error) {
 	confExp, err := r.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)

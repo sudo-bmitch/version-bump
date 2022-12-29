@@ -20,7 +20,7 @@ func newManual(conf config.Source) Source {
 	return manual{conf: conf}
 }
 
-func (m manual) Get(data config.TemplateData) (string, error) {
+func (m manual) Get(data config.SourceTmplData) (string, error) {
 	confExp, err := m.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)
@@ -28,10 +28,13 @@ func (m manual) Get(data config.TemplateData) (string, error) {
 	if _, ok := confExp.Args["Version"]; !ok {
 		return "", fmt.Errorf("manual source is missing a version arg")
 	}
-	return confExp.Args["Version"], nil
+	verData := config.VersionTmplData{
+		Version: confExp.Args["Version"],
+	}
+	return procResult(confExp, verData)
 }
 
-func (m manual) Key(data config.TemplateData) (string, error) {
+func (m manual) Key(data config.SourceTmplData) (string, error) {
 	confExp, err := m.conf.ExpandTemplate(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to expand template: %w", err)
