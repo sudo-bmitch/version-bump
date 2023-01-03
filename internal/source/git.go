@@ -2,7 +2,6 @@ package source
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
@@ -45,21 +44,15 @@ func (g gitSource) getRefs(confExp config.Source) ([]*plumbing.Reference, error)
 }
 
 func (g gitSource) getCommit(confExp config.Source) (string, error) {
-	if _, ok := confExp.Args["ref"]; !ok {
-		return "", fmt.Errorf("ref argument is required")
-	}
 	refs, err := g.getRefs(confExp)
 	if err != nil {
 		return "", err
 	}
-	verData := config.VersionTmplData{
+	verData := VersionTmplData{
 		VerMap: map[string]string{},
 	}
 	for _, ref := range refs {
-		if ref.Name().String() == confExp.Args["ref"] || ref.Name().Short() == confExp.Args["ref"] {
-			// TODO: move filtering into procResult
-			verData.VerMap[ref.Name().Short()] = ref.Hash().String()
-		}
+		verData.VerMap[ref.Name().Short()] = ref.Hash().String()
 	}
 	if len(verData.VerMap) == 0 {
 		return "", fmt.Errorf("ref %s not found on %s", confExp.Args["ref"], confExp.Args["url"])
@@ -68,26 +61,16 @@ func (g gitSource) getCommit(confExp config.Source) (string, error) {
 }
 
 func (g gitSource) getTag(confExp config.Source) (string, error) {
-	if _, ok := confExp.Args["tagExp"]; !ok {
-		return "", fmt.Errorf("tagExp argument is required")
-	}
-	tagRE, err := regexp.Compile(confExp.Args["tagExp"])
-	if err != nil {
-		return "", fmt.Errorf("failed to parse tagExp regexp: %w", err)
-	}
 	refs, err := g.getRefs(confExp)
 	if err != nil {
 		return "", err
 	}
-	verData := config.VersionTmplData{
+	verData := VersionTmplData{
 		VerMap: map[string]string{},
 	}
 	// find matching tags
 	for _, ref := range refs {
-		if ref.Name().IsTag() && tagRE.MatchString(ref.Name().Short()) {
-			// TODO: move filtering into procResult
-			verData.VerMap[ref.Name().Short()] = ref.Name().Short()
-		}
+		verData.VerMap[ref.Name().Short()] = ref.Name().Short()
 	}
 	if len(verData.VerMap) == 0 {
 		return "", fmt.Errorf("no matching tags found")

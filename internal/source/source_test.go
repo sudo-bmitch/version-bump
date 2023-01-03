@@ -76,9 +76,11 @@ func TestSource(t *testing.T) {
 				Key:  "git tag",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
-					"url":    "https://github.com/regclient/regclient.git",
-					"type":   "tag",
-					"tagExp": `^v0.4.[1-5]$`,
+					"url":  "https://github.com/regclient/regclient.git",
+					"type": "tag",
+				},
+				Filter: config.SourceFilter{
+					Expr: `^v0.4.[1-5]$`,
 				},
 				Sort: config.SourceSort{
 					Method: "semver",
@@ -104,7 +106,9 @@ func TestSource(t *testing.T) {
 					// TODO: switch to version-bump repo after it has enough tags
 					"url":  "https://github.com/regclient/regclient.git",
 					"type": "ref",
-					"ref":  `v0.4.3`,
+				},
+				Filter: config.SourceFilter{
+					Expr: `^v0.4.3$`,
 				},
 			},
 			data: config.SourceTmplData{
@@ -124,9 +128,11 @@ func TestSource(t *testing.T) {
 				Key:  "registry tag",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
-					"repo":   "ghcr.io/regclient/regctl",
-					"type":   "tag",
-					"tagExp": `^v0.4.[1-5]$`,
+					"repo": "ghcr.io/regclient/regctl",
+					"type": "tag",
+				},
+				Filter: config.SourceFilter{
+					Expr: `^v0.4.[1-5]$`,
 				},
 				Sort: config.SourceSort{
 					Method: "semver",
@@ -163,6 +169,63 @@ func TestSource(t *testing.T) {
 			},
 			expectGet: "sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138",
 			expectKey: "registry digest",
+		},
+		{
+			name: "github release version",
+			confSrc: config.Source{
+				Name: "github release",
+				Type: "gh-release",
+				Key:  "github release",
+				Args: map[string]string{
+					// TODO: switch to version-bump repo after it has enough tags
+					"repo": "regclient/regclient",
+				},
+				Filter: config.SourceFilter{
+					Expr:     `^v0.4.[1-5]$`,
+					Template: `{{ .Meta.TagName }}`,
+				},
+				Sort: config.SourceSort{
+					Method: "semver",
+				},
+				Template: `["{{ index .VerMap ( index .VerList 1 ) }}", "{{ index .VerMap ( index .VerList 0 ) }}"]`,
+			},
+			data: config.SourceTmplData{
+				Filename:   "/dev/null",
+				ScanArgs:   map[string]string{},
+				ScanMatch:  map[string]string{},
+				SourceArgs: map[string]string{},
+			},
+			expectGet: `["v0.4.4", "v0.4.5"]`,
+			expectKey: "github release",
+		},
+		{
+			name: "github release artifact",
+			confSrc: config.Source{
+				Name: "github artifact",
+				Type: "gh-release",
+				Key:  "github artifact",
+				Args: map[string]string{
+					// TODO: switch to version-bump repo after it has enough tags
+					"repo":     "regclient/regclient",
+					"type":     "artifact",
+					"artifact": "regctl-linux-amd64",
+				},
+				Filter: config.SourceFilter{
+					Expr: `^v0.4.[1-5]$`,
+				},
+				Sort: config.SourceSort{
+					Method: "semver",
+				},
+				// Template: `["{{ index .VerMap ( index .VerList 1 ) }}", "{{ index .VerMap ( index .VerList 0 ) }}"]`,
+			},
+			data: config.SourceTmplData{
+				Filename:   "/dev/null",
+				ScanArgs:   map[string]string{},
+				ScanMatch:  map[string]string{},
+				SourceArgs: map[string]string{},
+			},
+			expectGet: `https://github.com/regclient/regclient/releases/download/v0.4.5/regctl-linux-amd64`,
+			expectKey: "github artifact",
 		},
 		// TODO: numeric sort
 	}

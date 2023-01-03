@@ -28,7 +28,7 @@ func (m manual) Get(data config.SourceTmplData) (string, error) {
 	if _, ok := confExp.Args["Version"]; !ok {
 		return "", fmt.Errorf("manual source is missing a version arg")
 	}
-	verData := config.VersionTmplData{
+	verData := VersionTmplData{
 		Version: confExp.Args["Version"],
 	}
 	return procResult(confExp, verData)
