@@ -3,7 +3,6 @@ package source
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/regclient/regclient"
 	"github.com/regclient/regclient/types/ref"
@@ -45,26 +44,15 @@ func (r registry) getTag(confExp config.Source) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to parse repo: %w", err)
 	}
-	// TODO: move filtering into procResult
-	tagExp, ok := confExp.Args["tagExp"]
-	if !ok {
-		return "", fmt.Errorf("tagExp not defined")
-	}
-	tagRE, err := regexp.Compile(tagExp)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse tagExp: %w", err)
-	}
 	tags, err := r.rc.TagList(context.Background(), repoRef)
 	if err != nil {
 		return "", fmt.Errorf("failed to list tags: %w", err)
 	}
-	verData := config.VersionTmplData{
+	verData := VersionTmplData{
 		VerMap: map[string]string{},
 	}
 	for _, tag := range tags.Tags {
-		if tagRE.Match([]byte(tag)) {
-			verData.VerMap[tag] = tag
-		}
+		verData.VerMap[tag] = tag
 	}
 	if len(verData.VerMap) == 0 {
 		return "", fmt.Errorf("no matching tags found")
@@ -85,7 +73,7 @@ func (r registry) getDigest(confExp config.Source) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to query image: %w", err)
 	}
-	verData := config.VersionTmplData{
+	verData := VersionTmplData{
 		Version: m.GetDescriptor().Digest.String(),
 	}
 	return procResult(confExp, verData)

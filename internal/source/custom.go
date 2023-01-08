@@ -33,7 +33,7 @@ func (c custom) Get(data config.SourceTmplData) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed running %s: %w", confExp.Args[customCmd], err)
 	}
-	verData := config.VersionTmplData{
+	verData := VersionTmplData{
 		Version: strings.TrimSpace(string(out)),
 	}
 	return procResult(confExp, verData)
