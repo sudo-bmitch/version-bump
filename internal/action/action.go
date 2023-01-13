@@ -68,12 +68,12 @@ func (a *Action) HandleMatch(filename string, scan string, sourceName string, ve
 	}
 	s, err := source.Get(*a.conf.Sources[sourceName])
 	if err != nil {
-		return false, "", fmt.Errorf("could not get source: %w", err)
+		return false, "", fmt.Errorf("could not get source %s: %w", sourceName, err)
 	}
 	data.SourceArgs = a.conf.Sources[sourceName].Args
 	key, err := s.Key(data)
 	if err != nil {
-		return false, "", fmt.Errorf("could not get source key: %w", err)
+		return false, "", fmt.Errorf("could not get key for source %s: %w", sourceName, err)
 	}
 	// determine curVer
 	var curVer string
@@ -82,7 +82,7 @@ func (a *Action) HandleMatch(filename string, scan string, sourceName string, ve
 		// query from source
 		curVer, err = s.Get(data)
 		if err != nil {
-			return false, "", fmt.Errorf("could not get current version: %w", err)
+			return false, "", fmt.Errorf("could not get current version from source %s: %w", sourceName, err)
 		}
 	case ActionSet, ActionReset:
 		// TODO: get curVer from lock, requires getting the key from the source

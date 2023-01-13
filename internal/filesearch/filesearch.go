@@ -37,7 +37,7 @@ func New(paths []string, conf map[string]*config.File) (*walk, error) {
 	for i, name := range confKey {
 		p, err := newPattern(name)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse \"%s\": %w", name, err)
 		}
 		confPat[i] = p
 	}
@@ -82,7 +82,7 @@ func (w *walk) Next() (string, string, error) {
 		filename := filepath.Join(fileSplit...)
 		fi, err := os.Stat(filename)
 		if err != nil {
-			return "", "", err
+			return "", "", fmt.Errorf("failed to read file %s: %w", filename, err)
 		}
 
 		// for directories
@@ -106,7 +106,7 @@ func (w *walk) Next() (string, string, error) {
 			deList, err := os.ReadDir(filename)
 			if err != nil {
 				w.popCurPath()
-				return "", "", err
+				return "", "", fmt.Errorf("failed to read directory %s: %w", filename, err)
 			}
 			if len(deList) == 0 {
 				w.popCurPath()

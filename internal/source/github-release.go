@@ -164,6 +164,9 @@ func (g ghRelease) getArtifact(confExp config.Source, releases []*GHRelease) (st
 			}
 		}
 	}
+	if len(verData.VerMap) <= 0 {
+		return "", fmt.Errorf("no releases found with artifact \"%s\"", artifactName)
+	}
 	return procResult(confExp, verData)
 }
 

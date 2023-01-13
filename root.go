@@ -108,7 +108,7 @@ func runAction(cmd *cobra.Command, args []string) error {
 	// parse config
 	conf, err := getConf()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 	locks, err := getLocks()
 	if err != nil {
@@ -122,11 +122,11 @@ func runAction(cmd *cobra.Command, args []string) error {
 	if rootOpts.chdir != "." {
 		origDir, err = os.Getwd()
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to get current directory: %w", err)
 		}
 		err = os.Chdir(rootOpts.chdir)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to change directory to %s: %w", rootOpts.chdir, err)
 		}
 	}
 
@@ -178,7 +178,7 @@ func runAction(cmd *cobra.Command, args []string) error {
 	if origDir != "." {
 		err = os.Chdir(origDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to change directory to %s: %w", origDir, err)
 		}
 	}
 	if !rootOpts.dryrun {
@@ -278,13 +278,13 @@ func procFile(filename string, fileConf string, conf *config.Config, act *action
 		}
 		curScan, err := scan.New(*conf.Scans[s], curFH, act, filename)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed scanning file \"%s\", scan \"%s\": %w", filename, s, err)
 		}
 		curFH = curScan
 	}
 	finalBytes, err := io.ReadAll(curFH)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed scanning file \"%s\": %w", filename, err)
 	}
 	// if the file was changed, output to a tmpfile and then copy/replace orig file
 	if !bytes.Equal(origBytes, finalBytes) {
@@ -314,7 +314,9 @@ func procFile(filename string, fileConf string, conf *config.Config, act *action
 			return fmt.Errorf("failed to adjust permissions on file %s: %w", filename, err)
 		}
 		// move temp file to target filename
-		err = os.Rename(tmpName, filename)
+		if err := os.Rename(tmpName, filename); err != nil {
+			return fmt.Errorf("failed to rename file %s to %s: %w", tmpName, filename, err)
+		}
 	}
-	return err
+	return nil
 }

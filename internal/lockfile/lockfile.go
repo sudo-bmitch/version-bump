@@ -76,7 +76,7 @@ func LoadReader(rdr io.Reader) (*Locks, error) {
 		l.Lock[entry.Name][entry.Key] = entry
 	}
 	if !errors.Is(err, io.EOF) {
-		return nil, err
+		return nil, fmt.Errorf("failed to read lock file: %w", err)
 	}
 
 	return l, nil
@@ -85,7 +85,7 @@ func LoadReader(rdr io.Reader) (*Locks, error) {
 func LoadFile(filename string) (*Locks, error) {
 	fh, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open lock file %s: %w", filename, err)
 	}
 	defer fh.Close()
 	return LoadReader(fh)
@@ -107,7 +107,7 @@ func SaveWriter(write io.Writer, l *Locks) error {
 		sort.Strings(keys)
 		for _, key := range keys {
 			if err := json.NewEncoder(write).Encode(l.Lock[name][key]); err != nil {
-				return err
+				return fmt.Errorf("failed to encode lockfile content: %w", err)
 			}
 		}
 	}
@@ -142,9 +142,11 @@ func SaveFile(filename string, l *Locks) error {
 		mode = stat.Mode()
 	}
 	if err := os.Chmod(tmpName, mode); err != nil {
-		return err
+		return fmt.Errorf("failed to change permission on lockfile %s: %w", tmpName, err)
 	}
 	// move temp file to target filename
-	err = os.Rename(tmpName, filename)
-	return err
+	if err := os.Rename(tmpName, filename); err != nil {
+		return fmt.Errorf("failed to replace lockfile %s: %w", filename, err)
+	}
+	return nil
 }

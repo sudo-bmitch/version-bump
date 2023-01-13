@@ -83,6 +83,9 @@ func procResult(confExp config.Source, data VersionTmplData) (string, error) {
 				delete(data.VerMap, k)
 			}
 		}
+		if len(data.VerMap) <= 0 {
+			return "", fmt.Errorf("no matching versions found for expression \"%s\"", confExp.Filter.Expr)
+		}
 	}
 	// sort
 	if len(data.VerMap) > 0 {
