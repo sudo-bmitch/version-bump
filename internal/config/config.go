@@ -92,7 +92,7 @@ func LoadReader(r io.Reader) (*Config, error) {
 	c := New()
 	err := yaml.NewDecoder(r).Decode(c)
 	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 	if c.Version > 1 {
 		return nil, fmt.Errorf("unsupported config version: %d", c.Version)
@@ -134,17 +134,17 @@ func (s Source) ExpandTemplate(data interface{}) (Source, error) {
 	var err error
 	sExp.Key, err = template.String(s.Key, data)
 	if err != nil {
-		return sExp, err
+		return sExp, fmt.Errorf("failed to parse template for source \"%s\": \"%s\": %w", s.Name, s.Key, err)
 	}
 	for k := range s.Args {
 		sExp.Args[k], err = template.String(s.Args[k], data)
 		if err != nil {
-			return sExp, err
+			return sExp, fmt.Errorf("failed to parse template for source \"%s\": \"%s\": %w", s.Name, s.Args[k], err)
 		}
 	}
 	sExp.Filter.Expr, err = template.String(s.Filter.Expr, data)
 	if err != nil {
-		return sExp, err
+		return sExp, fmt.Errorf("failed to parse template for source \"%s\": \"%s\": %w", s.Name, s.Filter.Expr, err)
 	}
 	// TODO: support exec field too?
 	return sExp, nil
