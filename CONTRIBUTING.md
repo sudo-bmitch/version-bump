@@ -2,7 +2,7 @@
 
 ## Reporting security issues
 
-Please send security issues to git@bmitch.net.
+Please send security issues to <git@bmitch.net>.
 
 ## Reporting other issues
 

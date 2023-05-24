@@ -17,8 +17,10 @@ DOCKERFILE_EXT?=$(shell if docker build --help 2>/dev/null | grep -q -- '--progr
 DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
+MARKDOWN_LINT_VER?=v0.34.0
+STATICCHECK_VER?=v0.4.3
 
-.PHONY: all fmt vet test lint lint-go lint-md vendor binaries docker artifacts artifact-pre maint-version-bump .FORCE
+.PHONY: all fmt vet test lint lint-go lint-md vendor binaries docker artifacts artifact-pre .FORCE
 
 .FORCE:
 
@@ -39,7 +41,7 @@ lint-go: $(GOPATH)/bin/staticcheck .FORCE ## Run linting for Go
 	$(GOPATH)/bin/staticcheck -checks all ./...
 
 lint-md: .FORCE ## Run linting for markdown
-	docker run --rm -v "$(PWD):/workdir:ro" ghcr.io/igorshubovych/markdownlint-cli:latest \
+	docker run --rm -v "$(PWD):/workdir:ro" ghcr.io/igorshubovych/markdownlint-cli:$(MARKDOWN_LINT_VER) \
 	  --ignore vendor .
 
 vendor: ## Vendor Go modules
@@ -83,14 +85,25 @@ artifacts/version-bump-%: artifact-pre .FORCE
 	echo go build ${GO_BUILD_FLAGS} -o "$@" .; \
 	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o "$@" .
 
-maint-version-check: bin/version-bump .FORCE ## Check versions of dependencies in this project
+util-version-check: bin/version-bump .FORCE ## Check versions of dependencies in this project
 	bin/version-bump check
 
-maint-version-update: bin/version-bump .FORCE ## Update versions of dependencies in this project
+util-version-update: bin/version-bump .FORCE ## Update versions of dependencies in this project
 	bin/version-bump update
 
-$(GOPATH)/bin/staticcheck: 
-	go install "honnef.co/go/tools/cmd/staticcheck@latest"
+util-golang-update: ## Update golang dependencies
+	go get -u
+	go mod tidy
+	go mod vendor
+
+$(GOPATH)/bin/staticcheck: .FORCE
+	@[ -f $(GOPATH)/bin/staticcheck ] \
+	&& [ "$$($(GOPATH)/bin/staticcheck -version | cut -f 3 -d ' ' | tr -d '()')" = "$(STATICCHECK_VER)" ] \
+	|| go install "honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VER)"
+
+$(GOPATH)/bin/govulncheck: .FORCE
+	# for now, keep installing the latest until they start releasing versions
+	go install "golang.org/x/vuln/cmd/govulncheck@latest"
 
 help: # Display help
 	@awk -F ':|##' '/^[^\t].+?:.*?##/ { printf "\033[36m%-30s\033[0m %s\n", $$1, $$NF }' $(MAKEFILE_LIST)
