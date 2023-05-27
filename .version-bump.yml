@@ -2,8 +2,8 @@ files:
   "Dockerfile*":
     scans:
       - docker-arg-alpine
-      - docker-arg-go
       - docker-arg-go-tag
+      - docker-arg-go
   ".github/workflows/*.yml":
     scans:
       - gha-golang-matrix
