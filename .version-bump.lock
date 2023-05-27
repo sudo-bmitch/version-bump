@@ -5,7 +5,10 @@
 {"name":"gha-uses","key":"docker/login-action","version":"v2"}
 {"name":"gha-uses","key":"docker/setup-buildx-action","version":"v2"}
 {"name":"gha-uses","key":"softprops/action-gh-release","version":"v1"}
+{"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.3"}
 {"name":"registry-digest-arg","key":"alpine:3","version":"sha256:02bb6f428431fbc2809c5d1b41eab5a68350194fb508869a33cb1af4444c9b11"}
 {"name":"registry-digest-arg","key":"golang:1.19-alpine","version":"sha256:4147c2ad24a347e53a8a361b663dcf82fca4157a3f9a5136d696a4e53dd22b65"}
+{"name":"registry-digest-arg","key":"golang:1.20-alpine","version":"sha256:ee2f23f1a612da71b8a4cd78fec827f1e67b0a8546a98d257cca441a4ddbebcb"}
 {"name":"registry-golang-latest","key":"golang-latest","version":"1.20"}
 {"name":"registry-golang-matrix","key":"golang-matrix","version":"[\"1.18\", \"1.19\", \"1.20\"]"}
+{"name":"registry-tag-arg-semver","key":"ghcr.io/igorshubovych/markdownlint-cli","version":"v0.34.0"}
