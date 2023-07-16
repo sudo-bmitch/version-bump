@@ -18,6 +18,8 @@ DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 MARKDOWN_LINT_VER?=v0.35.0
+GO_VULNCHECK_VER?=v1.0.0
+OSV_SCANNER_VER?=v1.3.5
 STATICCHECK_VER?=v0.4.3
 
 .PHONY: all fmt vet test lint lint-go lint-md vendor binaries docker artifacts artifact-pre .FORCE
@@ -43,6 +45,17 @@ lint-go: $(GOPATH)/bin/staticcheck .FORCE ## Run linting for Go
 lint-md: .FORCE ## Run linting for markdown
 	docker run --rm -v "$(PWD):/workdir:ro" ghcr.io/igorshubovych/markdownlint-cli:$(MARKDOWN_LINT_VER) \
 	  --ignore vendor .
+
+.PHONY: vulnerability-scan
+vulnerability-scan: osv-scanner vulncheck-go ## Run all vulnerability scanners
+
+.PHONY: osv-scanner
+osv-scanner: $(GOPATH)/bin/osv-scanner .FORCE ## Run OSV Scanner
+	$(GOPATH)/bin/osv-scanner -r .
+
+.PHONY: vulncheck-go
+vulncheck-go: $(GOPATH)/bin/govulncheck .FORCE ## Run govulncheck
+	$(GOPATH)/bin/govulncheck ./...
 
 vendor: ## Vendor Go modules
 	go mod vendor
@@ -102,8 +115,14 @@ $(GOPATH)/bin/staticcheck: .FORCE
 	|| go install "honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VER)"
 
 $(GOPATH)/bin/govulncheck: .FORCE
-	# for now, keep installing the latest until they start releasing versions
-	go install "golang.org/x/vuln/cmd/govulncheck@latest"
+	@[ $$(go version -m $(GOPATH)/bin/govulncheck | \
+		awk -F ' ' '{ if ($$1 == "mod" && $$2 == "golang.org/x/vuln") { printf "%s\n", $$3 } }') = "$(GO_VULNCHECK_VER)" ] \
+	|| CGO_ENABLED=0 go install "golang.org/x/vuln/cmd/govulncheck@$(GO_VULNCHECK_VER)"
+
+$(GOPATH)/bin/osv-scanner: .FORCE
+	@[ $$(go version -m $(GOPATH)/bin/osv-scanner | \
+		awk -F ' ' '{ if ($$1 == "mod" && $$2 == "github.com/google/osv-scanner") { printf "%s\n", $$3 } }') = "$(OSV_SCANNER_VER)" ] \
+	|| CGO_ENABLED=0 go install "github.com/google/osv-scanner/cmd/osv-scanner@$(OSV_SCANNER_VER)"
 
 help: # Display help
 	@awk -F ':|##' '/^[^\t].+?:.*?##/ { printf "\033[36m%-30s\033[0m %s\n", $$1, $$NF }' $(MAKEFILE_LIST)
