@@ -92,7 +92,7 @@ util-version-update: bin/version-bump .FORCE ## Update versions of dependencies 
 	bin/version-bump update
 
 util-golang-update: ## Update golang dependencies
-	go get -u
+	go get -u -t ./...
 	go mod tidy
 	go mod vendor
 
