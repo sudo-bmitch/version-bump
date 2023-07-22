@@ -35,6 +35,7 @@ var rootOpts struct {
 	verbosity string
 	logopts   []string
 	format    string
+	scans     []string
 }
 
 var rootCmd = &cobra.Command{
@@ -93,13 +94,14 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	for _, cmd := range []*cobra.Command{checkCmd, scanCmd, updateCmd} {
-		cmd.Flags().StringVarP(&rootOpts.chdir, "chdir", "", "", "Changes to requested directory, defaults to config file location")
+		cmd.Flags().StringVar(&rootOpts.chdir, "chdir", "", "Changes to requested directory, defaults to config file location")
 		cmd.Flags().StringVarP(&rootOpts.confFile, "conf", "c", "", "Config file to load")
-		cmd.Flags().BoolVarP(&rootOpts.dryrun, "dry-run", "", false, "Dry run")
+		cmd.Flags().BoolVar(&rootOpts.dryrun, "dry-run", false, "Dry run")
+		cmd.Flags().StringArrayVar(&rootOpts.scans, "scan", []string{}, "Only run specific scans")
 		rootCmd.AddCommand(cmd)
 	}
 
-	versionCmd.Flags().StringVarP(&rootOpts.format, "format", "", "{{printPretty .}}", "Format output with go template syntax")
+	versionCmd.Flags().StringVar(&rootOpts.format, "format", "{{printPretty .}}", "Format output with go template syntax")
 	rootCmd.AddCommand(versionCmd)
 }
 
@@ -272,7 +274,12 @@ func procFile(filename string, fileConf string, conf *config.Config, act *action
 			}
 		}
 	}()
+	scanFound := false
 	for _, s := range conf.Files[fileConf].Scans {
+		// skip scans when CLI arg requests specific scans
+		if len(rootOpts.scans) > 0 && !containsStr(rootOpts.scans, s) {
+			continue
+		}
 		if _, ok := conf.Scans[s]; !ok {
 			return fmt.Errorf("missing scan config: %s, file config: %s, reading file: %s", s, fileConf, filename)
 		}
@@ -281,6 +288,10 @@ func procFile(filename string, fileConf string, conf *config.Config, act *action
 			return fmt.Errorf("failed scanning file \"%s\", scan \"%s\": %w", filename, s, err)
 		}
 		curFH = curScan
+		scanFound = true
+	}
+	if !scanFound {
+		return nil
 	}
 	finalBytes, err := io.ReadAll(curFH)
 	if err != nil {
@@ -319,4 +330,13 @@ func procFile(filename string, fileConf string, conf *config.Config, act *action
 		}
 	}
 	return nil
+}
+
+func containsStr(strList []string, str string) bool {
+	for _, cur := range strList {
+		if cur == str {
+			return true
+		}
+	}
+	return false
 }
