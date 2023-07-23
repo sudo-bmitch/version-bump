@@ -40,7 +40,9 @@ func (g gitSource) getRefs(confExp config.Source) ([]*plumbing.Reference, error)
 		Name: "origin",
 		URLs: []string{confExp.Args["url"]},
 	})
-	return rem.List(&git.ListOptions{})
+	return rem.List(&git.ListOptions{
+		PeelingOption: git.AppendPeeled,
+	})
 }
 
 func (g gitSource) getCommit(confExp config.Source) (string, error) {
@@ -53,6 +55,13 @@ func (g gitSource) getCommit(confExp config.Source) (string, error) {
 	}
 	for _, ref := range refs {
 		verData.VerMap[ref.Name().Short()] = ref.Hash().String()
+	}
+	// loop over the map entries to prefer the peeled hash (underlying commit vs signed/annotated tag hash)
+	for k := range verData.VerMap {
+		if _, ok := verData.VerMap[k+"^{}"]; ok {
+			verData.VerMap[k] = verData.VerMap[k+"^{}"]
+			delete(verData.VerMap, k+"^{}")
+		}
 	}
 	if len(verData.VerMap) == 0 {
 		return "", fmt.Errorf("ref %s not found on %s", confExp.Args["ref"], confExp.Args["url"])

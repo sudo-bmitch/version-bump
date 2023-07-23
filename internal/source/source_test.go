@@ -117,7 +117,7 @@ func TestSource(t *testing.T) {
 				ScanMatch:  map[string]string{},
 				SourceArgs: map[string]string{},
 			},
-			expectGet: "6f5dc406130fdf939cc0f49fb0a5904b35a3c46f",
+			expectGet: "b0ac3e9413b1079c8b14df5c201a2a2129d9d9e1",
 			expectKey: "git ref",
 		},
 		{
