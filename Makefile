@@ -19,7 +19,7 @@ GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 MARKDOWN_LINT_VER?=v0.35.0
 GO_VULNCHECK_VER?=v1.0.0
-OSV_SCANNER_VER?=v1.3.5
+OSV_SCANNER_VER?=v1.3.6
 STATICCHECK_VER?=v0.4.3
 
 .PHONY: all fmt vet test lint lint-go lint-md vendor binaries docker artifacts artifact-pre .FORCE
