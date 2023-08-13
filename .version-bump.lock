@@ -8,9 +8,10 @@
 {"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.3"}
 {"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.3.6"}
 {"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.0.0"}
-{"name":"registry-digest-arg","key":"alpine:3","version":"sha256:82d1e9d7ed48a7523bdebc18cf6290bdb97b82302a8a9c27d4fe885949ea94d1"}
+{"name":"registry-digest-arg","key":"alpine:3","version":"sha256:7144f7bab3d4c2648d7e59409f15ec52a18006a128c733fcff20d3a4a54ba44a"}
 {"name":"registry-digest-arg","key":"golang:1.19-alpine","version":"sha256:4147c2ad24a347e53a8a361b663dcf82fca4157a3f9a5136d696a4e53dd22b65"}
 {"name":"registry-digest-arg","key":"golang:1.20-alpine","version":"sha256:7efb78dac256c450d194e556e96f80936528335033a26d703ec8146cec8c2090"}
-{"name":"registry-golang-latest","key":"golang-latest","version":"1.20"}
-{"name":"registry-golang-matrix","key":"golang-matrix","version":"[\"1.18\", \"1.19\", \"1.20\"]"}
+{"name":"registry-digest-arg","key":"golang:1.21-alpine","version":"sha256:445f34008a77b0b98bf1821bf7ef5e37bb63cc42d22ee7c21cc17041070d134f"}
+{"name":"registry-golang-latest","key":"golang-latest","version":"1.21"}
+{"name":"registry-golang-matrix","key":"golang-matrix","version":"[\"1.19\", \"1.20\", \"1.21\"]"}
 {"name":"registry-tag-arg-semver","key":"ghcr.io/igorshubovych/markdownlint-cli","version":"v0.35.0"}
