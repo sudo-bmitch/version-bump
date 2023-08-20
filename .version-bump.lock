@@ -5,9 +5,9 @@
 {"name":"gha-uses","key":"docker/login-action","version":"v2"}
 {"name":"gha-uses","key":"docker/setup-buildx-action","version":"v2"}
 {"name":"gha-uses","key":"softprops/action-gh-release","version":"v1"}
-{"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.3"}
+{"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.5"}
 {"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.3.6"}
-{"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.0.0"}
+{"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.0.1"}
 {"name":"registry-digest-arg","key":"alpine:3","version":"sha256:7144f7bab3d4c2648d7e59409f15ec52a18006a128c733fcff20d3a4a54ba44a"}
 {"name":"registry-digest-arg","key":"golang:1.19-alpine","version":"sha256:4147c2ad24a347e53a8a361b663dcf82fca4157a3f9a5136d696a4e53dd22b65"}
 {"name":"registry-digest-arg","key":"golang:1.20-alpine","version":"sha256:7efb78dac256c450d194e556e96f80936528335033a26d703ec8146cec8c2090"}
