@@ -14,4 +14,4 @@
 {"name":"registry-digest-arg","key":"golang:1.21-alpine","version":"sha256:445f34008a77b0b98bf1821bf7ef5e37bb63cc42d22ee7c21cc17041070d134f"}
 {"name":"registry-golang-latest","key":"golang-latest","version":"1.21"}
 {"name":"registry-golang-matrix","key":"golang-matrix","version":"[\"1.19\", \"1.20\", \"1.21\"]"}
-{"name":"registry-tag-arg-semver","key":"ghcr.io/igorshubovych/markdownlint-cli","version":"v0.35.0"}
+{"name":"registry-tag-arg-semver","key":"ghcr.io/igorshubovych/markdownlint-cli","version":"v0.36.0"}
