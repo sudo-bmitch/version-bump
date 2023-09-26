@@ -17,7 +17,7 @@ DOCKERFILE_EXT?=$(shell if docker build --help 2>/dev/null | grep -q -- '--progr
 DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
-MARKDOWN_LINT_VER?=v0.37.0
+MARKDOWN_LINT_VER?=v0.10.0
 GO_VULNCHECK_VER?=v1.0.1
 OSV_SCANNER_VER?=v1.4.0
 STATICCHECK_VER?=v0.4.6
@@ -43,8 +43,8 @@ lint-go: $(GOPATH)/bin/staticcheck .FORCE ## Run linting for Go
 	$(GOPATH)/bin/staticcheck -checks all ./...
 
 lint-md: .FORCE ## Run linting for markdown
-	docker run --rm -v "$(PWD):/workdir:ro" ghcr.io/igorshubovych/markdownlint-cli:$(MARKDOWN_LINT_VER) \
-	  --ignore vendor .
+	docker run --rm -v "$(PWD):/workdir:ro" davidanson/markdownlint-cli2:$(MARKDOWN_LINT_VER) \
+	  "**/*.md" "#vendor"
 
 .PHONY: vulnerability-scan
 vulnerability-scan: osv-scanner vulncheck-go ## Run all vulnerability scanners
