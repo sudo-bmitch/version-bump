@@ -6,7 +6,7 @@
 {"name":"gha-uses","key":"docker/setup-buildx-action","version":"v3"}
 {"name":"gha-uses","key":"softprops/action-gh-release","version":"v1"}
 {"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.6"}
-{"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.4.1"}
+{"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.4.2"}
 {"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.0.1"}
 {"name":"registry-digest-arg","key":"alpine:3","version":"sha256:eece025e432126ce23f223450a0326fbebde39cdf496a85d8c016293fc851978"}
 {"name":"registry-digest-arg","key":"golang:1.19-alpine","version":"sha256:4147c2ad24a347e53a8a361b663dcf82fca4157a3f9a5136d696a4e53dd22b65"}
