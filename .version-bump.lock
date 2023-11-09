@@ -11,7 +11,7 @@
 {"name":"registry-digest-arg","key":"alpine:3","version":"sha256:eece025e432126ce23f223450a0326fbebde39cdf496a85d8c016293fc851978"}
 {"name":"registry-digest-arg","key":"golang:1.19-alpine","version":"sha256:4147c2ad24a347e53a8a361b663dcf82fca4157a3f9a5136d696a4e53dd22b65"}
 {"name":"registry-digest-arg","key":"golang:1.20-alpine","version":"sha256:7efb78dac256c450d194e556e96f80936528335033a26d703ec8146cec8c2090"}
-{"name":"registry-digest-arg","key":"golang:1.21-alpine","version":"sha256:96a8a701943e7eabd81ebd0963540ad660e29c3b2dc7fb9d7e06af34409e9ba6"}
+{"name":"registry-digest-arg","key":"golang:1.21-alpine","version":"sha256:110b07af87238fbdc5f1df52b00927cf58ce3de358eeeb1854f10a8b5e5e1411"}
 {"name":"registry-golang-latest","key":"golang-latest","version":"1.21"}
 {"name":"registry-golang-matrix","key":"golang-matrix","version":"[\"1.19\", \"1.20\", \"1.21\"]"}
 {"name":"registry-tag-arg-semver","key":"davidanson/markdownlint-cli2","version":"v0.10.0"}

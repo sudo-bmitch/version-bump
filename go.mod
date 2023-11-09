@@ -7,7 +7,7 @@ require (
 	github.com/go-git/go-git/v5 v5.10.0
 	github.com/regclient/regclient v0.5.3
 	github.com/spf13/cobra v1.8.0
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
+	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -34,10 +34,10 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/crypto v0.15.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
-	golang.org/x/tools v0.14.0 // indirect
+	golang.org/x/tools v0.15.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
