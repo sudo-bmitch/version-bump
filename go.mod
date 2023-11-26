@@ -5,9 +5,9 @@ go 1.21
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-git/go-git/v5 v5.10.0
-	github.com/regclient/regclient v0.5.3
+	github.com/regclient/regclient v0.5.5
 	github.com/spf13/cobra v1.8.0
-	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	gopkg.in/yaml.v2 v2.4.0
 )
 
