@@ -1,17 +1,17 @@
 {"name":"gha-uses","key":"actions/checkout","version":"v4"}
-{"name":"gha-uses","key":"actions/setup-go","version":"v4"}
+{"name":"gha-uses","key":"actions/setup-go","version":"v5"}
 {"name":"gha-uses","key":"actions/upload-artifact","version":"v3"}
 {"name":"gha-uses","key":"docker/build-push-action","version":"v5"}
 {"name":"gha-uses","key":"docker/login-action","version":"v3"}
 {"name":"gha-uses","key":"docker/setup-buildx-action","version":"v3"}
 {"name":"gha-uses","key":"softprops/action-gh-release","version":"v1"}
 {"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.6"}
-{"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.4.3"}
+{"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.5.0"}
 {"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.0.1"}
-{"name":"registry-digest-arg","key":"alpine:3","version":"sha256:34871e7290500828b39e22294660bee86d966bc0017544e848dd9a255cdf59e0"}
+{"name":"registry-digest-arg","key":"alpine:3","version":"sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48"}
 {"name":"registry-digest-arg","key":"golang:1.19-alpine","version":"sha256:4147c2ad24a347e53a8a361b663dcf82fca4157a3f9a5136d696a4e53dd22b65"}
 {"name":"registry-digest-arg","key":"golang:1.20-alpine","version":"sha256:7efb78dac256c450d194e556e96f80936528335033a26d703ec8146cec8c2090"}
-{"name":"registry-digest-arg","key":"golang:1.21-alpine","version":"sha256:70afe55365a265f0762257550bc38440e0d6d6b97020d3f8c85328f00200dd8e"}
+{"name":"registry-digest-arg","key":"golang:1.21-alpine","version":"sha256:feceecc0e1d73d085040a8844de11a2858ba4a0c58c16a672f1736daecc2a4ff"}
 {"name":"registry-golang-latest","key":"golang-latest","version":"1.21"}
 {"name":"registry-golang-matrix","key":"golang-matrix","version":"[\"1.19\", \"1.20\", \"1.21\"]"}
 {"name":"registry-tag-arg-semver","key":"davidanson/markdownlint-cli2","version":"v0.11.0"}
