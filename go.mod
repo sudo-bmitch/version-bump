@@ -7,7 +7,7 @@ require (
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/regclient/regclient v0.5.5
 	github.com/spf13/cobra v1.8.0
-	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
+	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -37,6 +37,6 @@ require (
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/tools v0.16.0 // indirect
+	golang.org/x/tools v0.16.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

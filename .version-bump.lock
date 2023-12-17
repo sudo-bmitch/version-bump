@@ -1,6 +1,6 @@
 {"name":"gha-uses","key":"actions/checkout","version":"v4"}
 {"name":"gha-uses","key":"actions/setup-go","version":"v5"}
-{"name":"gha-uses","key":"actions/upload-artifact","version":"v3"}
+{"name":"gha-uses","key":"actions/upload-artifact","version":"v4"}
 {"name":"gha-uses","key":"docker/build-push-action","version":"v5"}
 {"name":"gha-uses","key":"docker/login-action","version":"v3"}
 {"name":"gha-uses","key":"docker/setup-buildx-action","version":"v3"}
