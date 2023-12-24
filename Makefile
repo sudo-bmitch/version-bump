@@ -60,7 +60,7 @@ vulncheck-go: $(GOPATH)/bin/govulncheck .FORCE ## Run govulncheck
 vendor: ## Vendor Go modules
 	go mod vendor
 
-binaries: vendor $(BINARIES) ## Build Go binaries
+binaries: $(BINARIES) ## Build Go binaries
 
 bin/version-bump: .FORCE
 	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o bin/version-bump .
@@ -107,7 +107,7 @@ util-version-update: bin/version-bump .FORCE ## Update versions of dependencies 
 util-golang-update: ## Update golang dependencies
 	go get -u -t ./...
 	go mod tidy
-	go mod vendor
+	[ ! -d vendor ] || go mod vendor
 
 $(GOPATH)/bin/staticcheck: .FORCE
 	@[ -f $(GOPATH)/bin/staticcheck ] \
