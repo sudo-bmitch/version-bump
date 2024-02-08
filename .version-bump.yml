@@ -14,6 +14,7 @@ files:
       - gha-uses-commit
   "Makefile":
     scans:
+      - makefile-gomajor
       - makefile-go-vulncheck
       - makefile-markdown-lint
       - makefile-osv-scanner
@@ -77,6 +78,12 @@ scans:
     source: "registry-golang-oldest"
     args:
       regexp: '^go (?P<Version>[0-9\.]+)\s*$'
+  makefile-gomajor:
+    type: "regexp"
+    source: "git-tag-semver"
+    args:
+      regexp: '^GOMAJOR_VER\?=(?P<Version>v[0-9\.]+)\s*$'
+      repo: "github.com/icholy/gomajor"
   makefile-go-vulncheck:
     type: "regexp"
     source: "git-tag-semver"

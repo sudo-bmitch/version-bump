@@ -18,30 +18,38 @@ DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 MARKDOWN_LINT_VER?=v0.12.1
+GOMAJOR_VER?=v0.10.1
 GO_VULNCHECK_VER?=v1.0.4
 OSV_SCANNER_VER?=v1.6.2
 STATICCHECK_VER?=v0.4.6
 
-.PHONY: all fmt vet test lint lint-go lint-md vendor binaries docker artifacts artifact-pre .FORCE
+.PHONY: .FORCE
 
 .FORCE:
 
+.PHONY: all
 all: fmt vet test lint binaries ## Full build of Go binaries (including fmt, vet, test, and lint)
 
+.PHONY: fmt
 fmt: ## go fmt
 	go fmt ./...
 
+.PHONY: vet
 vet: ## go vet
 	go vet ./...
 
+.PHONY: test
 test: ## go test
 	go test -cover ./...
 
+.PHONY: lint
 lint: lint-go lint-md ## Run all linting
 
+.PHONY: lint-go
 lint-go: $(GOPATH)/bin/staticcheck .FORCE ## Run linting for Go
 	$(GOPATH)/bin/staticcheck -checks all ./...
 
+.PHONY: lint-md
 lint-md: .FORCE ## Run linting for markdown
 	docker run --rm -v "$(PWD):/workdir:ro" davidanson/markdownlint-cli2:$(MARKDOWN_LINT_VER) \
 	  "**/*.md" "#vendor"
@@ -57,16 +65,20 @@ osv-scanner: $(GOPATH)/bin/osv-scanner .FORCE ## Run OSV Scanner
 vulncheck-go: $(GOPATH)/bin/govulncheck .FORCE ## Run govulncheck
 	$(GOPATH)/bin/govulncheck ./...
 
+.PHONY: vendor
 vendor: ## Vendor Go modules
 	go mod vendor
 
+.PHONY: binaries
 binaries: $(BINARIES) ## Build Go binaries
 
 bin/version-bump: .FORCE
 	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o bin/version-bump .
 
+.PHONY: docker
 docker: $(IMAGES) ## Build the docker image
 
+.PHONY: docker-version-bump
 docker-version-bump: .FORCE
 	docker build -t sudo-bmitch/version-bump -f Dockerfile$(DOCKERFILE_EXT) $(DOCKER_ARGS) .
 	docker build -t sudo-bmitch/version-bump:alpine -f Dockerfile$(DOCKERFILE_EXT) --target release-alpine $(DOCKER_ARGS) .
@@ -77,14 +89,18 @@ docker-version-bump: .FORCE
 # 	build/oci-image.sh -r scratch -i "$*" -p "$(TEST_PLATFORMS)"
 # 	build/oci-image.sh -r alpine  -i "$*" -p "$(TEST_PLATFORMS)" -b "alpine:3"
 
+.PHONY: test-docker
 test-docker: $(addprefix test-docker-,$(COMMANDS)) ## Test the docker multi-platform image builds
 
+.PHONY: test-docker-version-bump
 test-docker-version-bump:
 	docker buildx build --platform="$(TEST_PLATFORMS)" -f Dockerfile.buildkit .
 	docker buildx build --platform="$(TEST_PLATFORMS)" -f Dockerfile.buildkit --target release-alpine .
 
+.PHONY: artifacts
 artifacts: $(ARTIFACTS) ## Generate artifacts
 
+.PHONY: artifact-pre
 artifact-pre:
 	mkdir -p artifacts
 
@@ -98,12 +114,19 @@ artifacts/version-bump-%: artifact-pre .FORCE
 	echo go build ${GO_BUILD_FLAGS} -o "$@" .; \
 	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -o "$@" .
 
+.PHONY: util-version-check
 util-version-check: bin/version-bump .FORCE ## Check versions of dependencies in this project
 	bin/version-bump check
 
+.PHONY: util-version-update
 util-version-update: bin/version-bump .FORCE ## Update versions of dependencies in this project
 	bin/version-bump update
 
+.PHONY: util-golang-major
+util-golang-major: $(GOPATH)/bin/gomajor ## check for major dependency updates
+	$(GOPATH)/bin/gomajor list
+
+.PHONY: util-golang-update
 util-golang-update: ## Update golang dependencies
 	go get -u -t ./...
 	go mod tidy
@@ -113,6 +136,11 @@ $(GOPATH)/bin/staticcheck: .FORCE
 	@[ -f $(GOPATH)/bin/staticcheck ] \
 	&& [ "$$($(GOPATH)/bin/staticcheck -version | cut -f 3 -d ' ' | tr -d '()')" = "$(STATICCHECK_VER)" ] \
 	|| go install "honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VER)"
+
+$(GOPATH)/bin/gomajor: .FORCE
+	@[ -f "$(GOPATH)/bin/gomajor" ] \
+	&& [ "$$($(GOPATH)/bin/gomajor version | grep '^version' | cut -f 2 -d ' ')" = "$(GOMAJOR_VER)" ] \
+	|| go install github.com/icholy/gomajor@$(GOMAJOR_VER)
 
 $(GOPATH)/bin/govulncheck: .FORCE
 	@[ $$(go version -m $(GOPATH)/bin/govulncheck | \
