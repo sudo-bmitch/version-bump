@@ -8,6 +8,7 @@
 {"name":"gha-uses-semver","key":"softprops/action-gh-release","version":"v0.1.15"}
 {"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.6"}
 {"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.6.2"}
+{"name":"git-tag-semver","key":"github.com/icholy/gomajor","version":"v0.10.1"}
 {"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.0.4"}
 {"name":"github-commit-match","key":"actions/checkout:v4.1.1","version":"b4ffde65f46336ab88eb53be808477a3936bae11"}
 {"name":"github-commit-match","key":"actions/setup-go:v5.0.0","version":"0c52d547c9bc32b1aa3301fd7a9cb496313a4491"}

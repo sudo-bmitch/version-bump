@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/sudo-bmitch/version-bump/internal/template"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // File defines a file to process for version bumps
