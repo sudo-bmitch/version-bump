@@ -59,7 +59,7 @@ vulnerability-scan: osv-scanner vulncheck-go ## Run all vulnerability scanners
 
 .PHONY: osv-scanner
 osv-scanner: $(GOPATH)/bin/osv-scanner .FORCE ## Run OSV Scanner
-	$(GOPATH)/bin/osv-scanner scan -r .
+	$(GOPATH)/bin/osv-scanner scan --config .osv-scanner.toml -r --experimental-licenses="Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MqIT,CC-BY-SA-4.0,UNKNOWN" .
 
 .PHONY: vulncheck-go
 vulncheck-go: $(GOPATH)/bin/govulncheck .FORCE ## Run govulncheck
