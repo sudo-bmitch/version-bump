@@ -1,6 +1,6 @@
 ARG REGISTRY=docker.io
 ARG ALPINE_VER=3.20.0@sha256:77726ef6b57ddf65bb551896826ec38bc3e53f75cdde31354fbffb4f25238ebd
-ARG GO_VER=1.22.3-alpine@sha256:f1fe698725f6ed14eb944dc587591f134632ed47fc0732ec27c7642adbe90618
+ARG GO_VER=1.22.3-alpine@sha256:7e788330fa9ae95c68784153b7fd5d5076c79af47651e992a3cdeceeb5dd1df0
 
 FROM --platform=$BUILDPLATFORM ${REGISTRY}/library/golang:${GO_VER} as build
 RUN apk add --no-cache \
