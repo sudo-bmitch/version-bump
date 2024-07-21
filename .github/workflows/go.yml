@@ -25,7 +25,7 @@ jobs:
     steps:
 
     - name: "Set up Go ${{ matrix.gover }}"
-      uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
         go-version: "${{ matrix.gover }}"
         check-latest: true
@@ -78,7 +78,7 @@ jobs:
     - name: Create release
       if: steps.release_details.outputs.valid == 'true' && matrix.gover == env.RELEASE_GO_VER
       id: release_create
-      uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
+      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
