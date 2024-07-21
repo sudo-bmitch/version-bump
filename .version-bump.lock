@@ -1,15 +1,15 @@
 {"name":"gha-uses-semver","key":"actions/checkout","version":"v4.1.7"}
-{"name":"gha-uses-semver","key":"actions/setup-go","version":"v5.0.1"}
+{"name":"gha-uses-semver","key":"actions/setup-go","version":"v5.0.2"}
 {"name":"gha-uses-semver","key":"actions/upload-artifact","version":"v4.3.4"}
-{"name":"gha-uses-semver","key":"docker/build-push-action","version":"v6.3.0"}
+{"name":"gha-uses-semver","key":"docker/build-push-action","version":"v6.4.1"}
 {"name":"gha-uses-semver","key":"docker/login-action","version":"v3.2.0"}
 {"name":"gha-uses-semver","key":"docker/setup-buildx-action","version":"v3.4.0"}
 {"name":"gha-uses-semver","key":"sigstore/cosign-installer","version":"v3.5.0"}
-{"name":"gha-uses-semver","key":"softprops/action-gh-release","version":"v2.0.6"}
+{"name":"gha-uses-semver","key":"softprops/action-gh-release","version":"v2.0.8"}
 {"name":"git-tag-semver","key":"github.com/dominikh/go-tools","version":"v0.4.7"}
-{"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.8.1"}
-{"name":"git-tag-semver","key":"github.com/icholy/gomajor","version":"v0.12.0"}
-{"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.1.2"}
+{"name":"git-tag-semver","key":"github.com/google/osv-scanner","version":"v1.8.2"}
+{"name":"git-tag-semver","key":"github.com/icholy/gomajor","version":"v0.13.1"}
+{"name":"git-tag-semver","key":"go.googlesource.com/vuln","version":"v1.1.3"}
 {"name":"github-commit-match","key":"actions/checkout:v4.1.1","version":"b4ffde65f46336ab88eb53be808477a3936bae11"}
 {"name":"github-commit-match","key":"actions/checkout:v4.1.2","version":"9bb56186c3b09b4f86b1c65136769dd318469633"}
 {"name":"github-commit-match","key":"actions/checkout:v4.1.4","version":"0ad4b8fadaa221de15dcec353f45205ec38ea70b"}
@@ -18,6 +18,7 @@
 {"name":"github-commit-match","key":"actions/checkout:v4.1.7","version":"692973e3d937129bcbf40652eb9f2f61becf3332"}
 {"name":"github-commit-match","key":"actions/setup-go:v5.0.0","version":"0c52d547c9bc32b1aa3301fd7a9cb496313a4491"}
 {"name":"github-commit-match","key":"actions/setup-go:v5.0.1","version":"cdcb36043654635271a94b9a6d1392de5bb323a7"}
+{"name":"github-commit-match","key":"actions/setup-go:v5.0.2","version":"0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32"}
 {"name":"github-commit-match","key":"actions/upload-artifact:v4.0.0","version":"c7d193f32edcb7bfad88892161225aeda64e9392"}
 {"name":"github-commit-match","key":"actions/upload-artifact:v4.1.0","version":"1eb3cb2b3e0f29609092a73eb033bb759a334595"}
 {"name":"github-commit-match","key":"actions/upload-artifact:v4.2.0","version":"694cdabd8bdb0f10b2cea11669e1bf5453eed0a6"}
@@ -30,6 +31,7 @@
 {"name":"github-commit-match","key":"docker/build-push-action:v5.3.0","version":"2cdde995de11925a030ce8070c3d77a52ffcf1c0"}
 {"name":"github-commit-match","key":"docker/build-push-action:v6.0.1","version":"94f8f8c2eec4bc3f1d78c1755580779804cb87b2"}
 {"name":"github-commit-match","key":"docker/build-push-action:v6.3.0","version":"1a162644f9a7e87d8f4b053101d1d9a712edc18c"}
+{"name":"github-commit-match","key":"docker/build-push-action:v6.4.1","version":"1ca370b3a9802c92e886402e0dd88098a2533b12"}
 {"name":"github-commit-match","key":"docker/login-action:v3.0.0","version":"343f7c4344506bcbf9b4de18042ae17996df046d"}
 {"name":"github-commit-match","key":"docker/login-action:v3.1.0","version":"e92390c5fb421da1463c202d546fed0ec5c39f20"}
 {"name":"github-commit-match","key":"docker/login-action:v3.2.0","version":"0d4c9c5ea7693da7b068278f7b52bda2a190a446"}
@@ -46,6 +48,7 @@
 {"name":"github-commit-match","key":"softprops/action-gh-release:v2.0.4","version":"9d7c94cfd0a1f3ed45544c887983e9fa900f0564"}
 {"name":"github-commit-match","key":"softprops/action-gh-release:v2.0.5","version":"69320dbe05506a9a39fc8ae11030b214ec2d1f87"}
 {"name":"github-commit-match","key":"softprops/action-gh-release:v2.0.6","version":"a74c6b72af54cfa997e81df42d94703d6313a2d0"}
+{"name":"github-commit-match","key":"softprops/action-gh-release:v2.0.8","version":"c062e08bd532815e2082a85e87e3ef29c3e6d191"}
 {"name":"registry-digest-arg","key":"docker.io/library/alpine:3.19.0","version":"sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48"}
 {"name":"registry-digest-arg","key":"docker.io/library/alpine:3.19.1","version":"sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b"}
 {"name":"registry-digest-arg","key":"docker.io/library/alpine:3.20.0","version":"sha256:77726ef6b57ddf65bb551896826ec38bc3e53f75cdde31354fbffb4f25238ebd"}
