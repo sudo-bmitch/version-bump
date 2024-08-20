@@ -17,10 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        gover: ["1.20", "1.21", "1.22"]
+        gover: ["1.21", "1.22", "1.23"]
 
     env:
-      RELEASE_GO_VER: "1.22"
+      RELEASE_GO_VER: "1.23"
 
     steps:
 
