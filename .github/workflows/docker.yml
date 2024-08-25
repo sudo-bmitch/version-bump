@@ -67,7 +67,6 @@ jobs:
           fi
         fi
         echo "version=${VERSION}" >>$GITHUB_OUTPUT
-        echo "cache=${GHCR_IMAGE}:buildcache${EXT}" >>$GITHUB_OUTPUT
         echo "image_hub=${HUB_IMAGE}" >>$GITHUB_OUTPUT
         echo "image_ghcr=${GHCR_IMAGE}" >>$GITHUB_OUTPUT
         echo "tags=${TAGS}" >>$GITHUB_OUTPUT
@@ -107,8 +106,6 @@ jobs:
         push: ${{ github.event_name != 'pull_request' && github.repository_owner == 'sudo-bmitch' }}
         target: release-${{ matrix.type }}
         tags: ${{ steps.prep.outputs.tags }}
-        cache-from: type=registry,ref=${{ steps.prep.outputs.cache }}
-        cache-to: ${{ github.repository_owner == 'sudo-bmitch' && format('type=registry,ref={0},mode=max', steps.prep.outputs.cache) || 'type=inline'}}
         labels: |
           org.opencontainers.image.created=${{ steps.prep.outputs.created }}
           org.opencontainers.image.source=${{ github.repositoryUrl }}
