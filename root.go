@@ -173,8 +173,8 @@ func runAction(cmd *cobra.Command, args []string) error {
 	}
 	// display changes
 	for _, change := range confRun.Changes {
-		fmt.Printf("Version changed: filename=%s, source=%s, scan=%s, old=%s, new=%s\n",
-			change.Filename, change.Source, change.Scan, change.Orig, change.New)
+		fmt.Printf("Version changed: filename=%s, scan=%s, source=%s, key=%s, old=%s, new=%s\n",
+			change.Filename, change.Scan, change.Source, change.Key, change.Orig, change.New)
 	}
 
 	if origDir != "." {
