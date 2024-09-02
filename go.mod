@@ -3,7 +3,7 @@ module github.com/sudo-bmitch/version-bump
 go 1.21
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.1
+	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/regclient/regclient v0.7.1
 	github.com/spf13/cobra v1.8.1
