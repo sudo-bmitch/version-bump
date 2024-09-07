@@ -16,9 +16,10 @@ import (
 
 // Lock stores known versions from a scan or source
 type Lock struct {
-	Name    string `json:"name"`
-	Key     string `json:"key"`
-	Version string `json:"version"`
+	Name    string `json:"name"`    // name for a group of locks, e.g. git versions
+	Key     string `json:"key"`     // key for a specific lock, e.g. repo and branch
+	Version string `json:"version"` // version of the lock, e.g. commit hash
+	used    bool   // tracks if a lock was used
 }
 
 type Locks struct {
@@ -34,6 +35,9 @@ func New() *Locks {
 }
 
 func (l *Locks) Get(name, key string) (*Lock, error) {
+	if l == nil || l.Lock == nil {
+		return nil, fmt.Errorf("cannot Get from a nil pointer")
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if _, ok := l.Lock[name]; !ok {
@@ -43,10 +47,14 @@ func (l *Locks) Get(name, key string) (*Lock, error) {
 	if !ok {
 		return nil, fmt.Errorf("not found")
 	}
+	entry.used = true
 	return entry, nil
 }
 
 func (l *Locks) Set(name, key, version string) error {
+	if l == nil || l.Lock == nil {
+		return fmt.Errorf("cannot Set to a nil pointer")
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if _, ok := l.Lock[name]; !ok {
@@ -56,6 +64,7 @@ func (l *Locks) Set(name, key, version string) error {
 		Name:    name,
 		Key:     key,
 		Version: version,
+		used:    true,
 	}
 	return nil
 }
@@ -91,14 +100,21 @@ func LoadFile(filename string) (*Locks, error) {
 	return LoadReader(fh)
 }
 
-func (l *Locks) Save() error {
-	return SaveFile(l.Filename, l)
+func (l *Locks) Save(used bool) error {
+	if l == nil || l.Lock == nil {
+		return fmt.Errorf("cannot save nil locks")
+	}
+	return l.SaveFile(l.Filename, used)
 }
 
-func SaveWriter(write io.Writer, l *Locks) error {
+// SaveWriter outputs the locks to the writer.
+// If used is true, only the locks that were marked as used (with a Get or Set) are output.
+func (l *Locks) SaveWriter(write io.Writer, used bool) error {
 	if l == nil || l.Lock == nil {
-		return fmt.Errorf("cannot save nil lockfile")
+		return fmt.Errorf("cannot save nil locks")
 	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	// sort to keep the file deterministic
 	names := maps.Keys(l.Lock)
 	sort.Strings(names)
@@ -106,6 +122,9 @@ func SaveWriter(write io.Writer, l *Locks) error {
 		keys := maps.Keys(l.Lock[name])
 		sort.Strings(keys)
 		for _, key := range keys {
+			if used && !l.Lock[name][key].used {
+				continue
+			}
 			if err := json.NewEncoder(write).Encode(l.Lock[name][key]); err != nil {
 				return fmt.Errorf("failed to encode lockfile content: %w", err)
 			}
@@ -114,7 +133,10 @@ func SaveWriter(write io.Writer, l *Locks) error {
 	return nil
 }
 
-func SaveFile(filename string, l *Locks) error {
+func (l *Locks) SaveFile(filename string, used bool) error {
+	if l == nil || l.Lock == nil {
+		return fmt.Errorf("cannot save nil locks")
+	}
 	// write to a temp file
 	dir := filepath.Dir(filename)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -125,7 +147,7 @@ func SaveFile(filename string, l *Locks) error {
 		return fmt.Errorf("unable to create temp file in %s: %w", dir, err)
 	}
 	tmpName := tmp.Name()
-	err = SaveWriter(tmp, l)
+	err = l.SaveWriter(tmp, used)
 	tmp.Close()
 	defer func() {
 		if err != nil {
