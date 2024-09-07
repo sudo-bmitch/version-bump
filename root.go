@@ -32,6 +32,7 @@ var rootOpts struct {
 	confFile  string
 	lockFile  string
 	dryrun    bool
+	prune     bool
 	verbosity string
 	logopts   []string
 	format    string
@@ -97,6 +98,7 @@ func init() {
 		cmd.Flags().StringVar(&rootOpts.chdir, "chdir", "", "Changes to requested directory, defaults to config file location")
 		cmd.Flags().StringVarP(&rootOpts.confFile, "conf", "c", "", "Config file to load")
 		cmd.Flags().BoolVar(&rootOpts.dryrun, "dry-run", false, "Dry run")
+		cmd.Flags().BoolVar(&rootOpts.prune, "prune", false, "Prune unused entries (default to true when no files are listed)")
 		cmd.Flags().StringArrayVar(&rootOpts.scans, "scan", []string{}, "Only run specific scans")
 		rootCmd.AddCommand(cmd)
 	}
@@ -115,6 +117,9 @@ func runAction(cmd *cobra.Command, args []string) error {
 	locks, err := getLocks()
 	if err != nil {
 		return fmt.Errorf("failed to load lockfile: %w", err)
+	}
+	if len(args) == 0 && !flagChanged(cmd, "prune") {
+		rootOpts.prune = true
 	}
 
 	// cd to appropriate location
@@ -186,7 +191,7 @@ func runAction(cmd *cobra.Command, args []string) error {
 	if !rootOpts.dryrun {
 		switch confRun.Action {
 		case action.ActionScan, action.ActionUpdate:
-			err = saveLocks(locks)
+			err = saveLocks(locks, rootOpts.prune)
 			if err != nil {
 				return err
 			}
@@ -250,11 +255,11 @@ func getLocks() (*lockfile.Locks, error) {
 	return l, nil
 }
 
-func saveLocks(l *lockfile.Locks) error {
+func saveLocks(l *lockfile.Locks, used bool) error {
 	if rootOpts.lockFile == "" {
 		return fmt.Errorf("lockfile not defined")
 	}
-	return lockfile.SaveFile(rootOpts.lockFile, l)
+	return l.SaveFile(rootOpts.lockFile, used)
 }
 
 func procFile(filename string, fileConf string, conf *config.Config, act *action.Action) (err error) {
