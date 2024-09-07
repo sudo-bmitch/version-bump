@@ -8,6 +8,7 @@ import (
 
 func main() {
 	// execute cobra cli
+	rootCmd := NewRootCmd()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)

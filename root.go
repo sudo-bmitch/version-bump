@@ -27,73 +27,75 @@ const (
 	envLock     = "VERSION_BUMP_LOCK"
 )
 
-var rootOpts struct {
-	chdir     string
-	confFile  string
-	lockFile  string
-	dryrun    bool
-	prune     bool
-	verbosity string
-	logopts   []string
-	format    string
-	scans     []string
+type cliOpts struct {
+	chdir    string
+	confFile string
+	lockFile string
+	dryrun   bool
+	prune    bool
+	format   string
+	scans    []string
+	// TODO: setup logging
+	// verbosity string
+	// logopts   []string
 }
 
-var rootCmd = &cobra.Command{
-	Use:           "version-bump <cmd>",
-	Short:         "Version and pinning management tool",
-	Long:          `version-bump updates versions embedded in various files of your project`,
-	SilenceUsage:  true,
-	SilenceErrors: true,
-}
+func NewRootCmd() *cobra.Command {
+	var rootOpts cliOpts
+	var rootCmd = &cobra.Command{
+		Use:           "version-bump <cmd>",
+		Short:         "Version and pinning management tool",
+		Long:          `version-bump updates versions embedded in various files of your project`,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+	}
 
-// check
-var checkCmd = &cobra.Command{
-	Use:   "check <file list>",
-	Short: "Check versions in files compared to sources",
-	Long: `Check each file identified in the configuration for versions.
+	// check
+	var checkCmd = &cobra.Command{
+		Use:   "check <file list>",
+		Short: "Check versions in files compared to sources",
+		Long: `Check each file identified in the configuration for versions.
 Compare the version to the upstream source. Report any version mismatches.
 Files or directories to scan should be passed as arguments, with the current dir as the default.
 By default, the current directory is changed to the location of the config file.`,
-	RunE: runAction,
-}
+		RunE: rootOpts.runAction,
+	}
 
-// update
-var updateCmd = &cobra.Command{
-	Use:   "update <file list>",
-	Short: "Update versions in files using upstream sources",
-	Long: `Scan each file identified in the configuration for versions.
+	// update
+	var updateCmd = &cobra.Command{
+		Use:   "update <file list>",
+		Short: "Update versions in files using upstream sources",
+		Long: `Scan each file identified in the configuration for versions.
 Compare the version to the upstream source.
 Update old versions, update the lock file, and report changes.
 Files or directories to scan should be passed as arguments, with the current dir as the default.
 By default, the current directory is changed to the location of the config file.`,
-	RunE: runAction,
-}
+		RunE: rootOpts.runAction,
+	}
 
-// TODO:
-// set
-// reset
+	// TODO:
+	// set
+	// reset
 
-// scan
-var scanCmd = &cobra.Command{
-	Use:   "scan <file list>",
-	Short: "Scan versions from files into lock file",
-	Long: `Scan each file identified in the configuration for versions.
+	// scan
+	var scanCmd = &cobra.Command{
+		Use:   "scan <file list>",
+		Short: "Scan versions from files into lock file",
+		Long: `Scan each file identified in the configuration for versions.
 Store those versions in lock file.
 Files or directories to scan should be passed as arguments, with the current dir as the default.
 By default, the current directory is changed to the location of the config file.`,
-	RunE: runAction,
-}
+		RunE: rootOpts.runAction,
+	}
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show the version",
-	Long:  `Show the version`,
-	Args:  cobra.ExactArgs(0),
-	RunE:  runVersion,
-}
+	var versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Show the version",
+		Long:  `Show the version`,
+		Args:  cobra.ExactArgs(0),
+		RunE:  rootOpts.runVersion,
+	}
 
-func init() {
 	for _, cmd := range []*cobra.Command{checkCmd, scanCmd, updateCmd} {
 		cmd.Flags().StringVar(&rootOpts.chdir, "chdir", "", "Changes to requested directory, defaults to config file location")
 		cmd.Flags().StringVarP(&rootOpts.confFile, "conf", "c", "", "Config file to load")
@@ -105,40 +107,42 @@ func init() {
 
 	versionCmd.Flags().StringVar(&rootOpts.format, "format", "{{printPretty .}}", "Format output with go template syntax")
 	rootCmd.AddCommand(versionCmd)
+
+	return rootCmd
 }
 
-func runAction(cmd *cobra.Command, args []string) error {
+func (cli *cliOpts) runAction(cmd *cobra.Command, args []string) error {
 	origDir := "."
 	// parse config
-	conf, err := getConf()
+	conf, err := cli.getConf()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-	locks, err := getLocks()
+	locks, err := cli.locksLoad()
 	if err != nil {
 		return fmt.Errorf("failed to load lockfile: %w", err)
 	}
 	if len(args) == 0 && !flagChanged(cmd, "prune") {
-		rootOpts.prune = true
+		cli.prune = true
 	}
 
 	// cd to appropriate location
 	if !flagChanged(cmd, "chdir") {
-		rootOpts.chdir = filepath.Dir(rootOpts.confFile)
+		cli.chdir = filepath.Dir(cli.confFile)
 	}
-	if rootOpts.chdir != "." {
+	if cli.chdir != "." {
 		origDir, err = os.Getwd()
 		if err != nil {
 			return fmt.Errorf("unable to get current directory: %w", err)
 		}
-		err = os.Chdir(rootOpts.chdir)
+		err = os.Chdir(cli.chdir)
 		if err != nil {
-			return fmt.Errorf("unable to change directory to %s: %w", rootOpts.chdir, err)
+			return fmt.Errorf("unable to change directory to %s: %w", cli.chdir, err)
 		}
 	}
 
 	confRun := &action.Opts{
-		DryRun: rootOpts.dryrun,
+		DryRun: cli.dryrun,
 		Locks:  locks,
 	}
 	switch cmd.Name() {
@@ -167,7 +171,7 @@ func runAction(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		fmt.Printf("processing file: %s for config %s\n", filename, key)
-		err = procFile(filename, key, conf, act)
+		err = cli.procFile(filename, key, conf, act)
 		if err != nil {
 			return err
 		}
@@ -188,10 +192,10 @@ func runAction(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("unable to change directory to %s: %w", origDir, err)
 		}
 	}
-	if !rootOpts.dryrun {
+	if !cli.dryrun {
 		switch confRun.Action {
 		case action.ActionScan, action.ActionUpdate:
-			err = saveLocks(locks, rootOpts.prune)
+			err = cli.locksSave(locks, cli.prune)
 			if err != nil {
 				return err
 			}
@@ -204,48 +208,40 @@ func runAction(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runVersion(cmd *cobra.Command, args []string) error {
+func (cli *cliOpts) runVersion(cmd *cobra.Command, args []string) error {
 	info := version.GetInfo()
-	return template.Writer(os.Stdout, rootOpts.format, info)
+	return template.Writer(cmd.OutOrStdout(), cli.format, info)
 }
 
-func flagChanged(cmd *cobra.Command, name string) bool {
-	flag := cmd.Flags().Lookup(name)
-	if flag == nil {
-		return false
-	}
-	return flag.Changed
-}
-
-func getConf() (*config.Config, error) {
+func (cli *cliOpts) getConf() (*config.Config, error) {
 	// if conf not provided, attempt to use env
-	if rootOpts.confFile == "" {
+	if cli.confFile == "" {
 		if file, ok := os.LookupEnv(envConf); ok {
-			rootOpts.confFile = file
+			cli.confFile = file
 		}
 	}
 	// fall back to fixed name
-	if rootOpts.confFile == "" {
-		rootOpts.confFile = defaultConf
+	if cli.confFile == "" {
+		cli.confFile = defaultConf
 	}
-	return config.LoadFile(rootOpts.confFile)
+	return config.LoadFile(cli.confFile)
 }
 
-func getLocks() (*lockfile.Locks, error) {
-	if rootOpts.lockFile == "" {
+func (cli *cliOpts) locksLoad() (*lockfile.Locks, error) {
+	if cli.lockFile == "" {
 		if file, ok := os.LookupEnv(envLock); ok {
-			rootOpts.lockFile = file
+			cli.lockFile = file
 		}
 	}
 	// fall back to changing conf filename
-	if rootOpts.lockFile == "" && rootOpts.confFile != "" {
-		rootOpts.lockFile = strings.TrimSuffix(rootOpts.confFile, filepath.Ext(rootOpts.confFile)) + ".lock"
+	if cli.lockFile == "" && cli.confFile != "" {
+		cli.lockFile = strings.TrimSuffix(cli.confFile, filepath.Ext(cli.confFile)) + ".lock"
 	}
 	// fall back to fixed name
-	if rootOpts.lockFile == "" {
-		rootOpts.lockFile = defaultLock
+	if cli.lockFile == "" {
+		cli.lockFile = defaultLock
 	}
-	l, err := lockfile.LoadFile(rootOpts.lockFile)
+	l, err := lockfile.LoadFile(cli.lockFile)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
@@ -255,14 +251,14 @@ func getLocks() (*lockfile.Locks, error) {
 	return l, nil
 }
 
-func saveLocks(l *lockfile.Locks, used bool) error {
-	if rootOpts.lockFile == "" {
+func (cli *cliOpts) locksSave(l *lockfile.Locks, used bool) error {
+	if cli.lockFile == "" {
 		return fmt.Errorf("lockfile not defined")
 	}
-	return l.SaveFile(rootOpts.lockFile, used)
+	return l.SaveFile(cli.lockFile, used)
 }
 
-func procFile(filename string, fileConf string, conf *config.Config, act *action.Action) (err error) {
+func (cli *cliOpts) procFile(filename string, fileConf string, conf *config.Config, act *action.Action) (err error) {
 	// TODO: for large files, write to a tmp file instead of using an in-memory buffer
 	origBytes, err := os.ReadFile(filename)
 	if err != nil {
@@ -282,7 +278,7 @@ func procFile(filename string, fileConf string, conf *config.Config, act *action
 	scanFound := false
 	for _, s := range conf.Files[fileConf].Scans {
 		// skip scans when CLI arg requests specific scans
-		if len(rootOpts.scans) > 0 && !containsStr(rootOpts.scans, s) {
+		if len(cli.scans) > 0 && !containsStr(cli.scans, s) {
 			continue
 		}
 		if _, ok := conf.Scans[s]; !ok {
@@ -344,4 +340,12 @@ func containsStr(strList []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func flagChanged(cmd *cobra.Command, name string) bool {
+	flag := cmd.Flags().Lookup(name)
+	if flag == nil {
+		return false
+	}
+	return flag.Changed
 }
