@@ -1,0 +1,19 @@
+files:
+  "root-*.txt":
+    scans:
+      - root-manual
+
+scans:
+  "root-manual":
+    type: "regexp"
+    source: "root-manual"
+    args:
+      regexp: '^manual-ver=(?P<Version>[^\s]+)\s*$'
+      key: "root-manual-ver"
+
+sources:
+  "root-manual":
+    type: "manual"
+    key: "{{ .ScanArgs.key }}"
+    args:
+      Version: "good"
