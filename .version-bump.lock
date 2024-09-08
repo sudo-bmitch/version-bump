@@ -19,7 +19,7 @@
 {"name":"github-commit-match","key":"sigstore/cosign-installer:v3.6.0","version":"4959ce089c160fddf62f7b42464195ba1a56d382"}
 {"name":"github-commit-match","key":"softprops/action-gh-release:v2.0.8","version":"c062e08bd532815e2082a85e87e3ef29c3e6d191"}
 {"name":"registry-digest-arg","key":"docker.io/library/alpine:3.20.3","version":"sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d"}
-{"name":"registry-digest-arg","key":"docker.io/library/golang:1.23.1-alpine","version":"sha256:fbc3a217775ee3ec2328077ad4f3681bbc2c4a812d63cc8c857c827f1e8e971f"}
+{"name":"registry-digest-arg","key":"docker.io/library/golang:1.23.1-alpine","version":"sha256:ac67716dd016429be8d4c2c53a248d7bcdf06d34127d3dc451bda6aa5a87bc06"}
 {"name":"registry-golang-latest","key":"golang-latest","version":"1.23"}
 {"name":"registry-golang-matrix","key":"golang-matrix","version":"[\"1.21\", \"1.22\", \"1.23\"]"}
 {"name":"registry-golang-oldest","key":"golang-oldest","version":"1.21"}
