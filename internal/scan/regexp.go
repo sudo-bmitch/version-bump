@@ -9,6 +9,11 @@ import (
 	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
+const (
+	regexpArgRE   = "regexp"
+	regexpVersion = "Version"
+)
+
 type reScan struct {
 	action   *action.Action
 	conf     config.Scan
@@ -21,12 +26,12 @@ type reScan struct {
 
 func newREScan(conf config.Scan, srcRdr io.ReadCloser, a *action.Action, filename string) (Scan, error) {
 	// validate config, extract and compile regexp
-	if _, ok := conf.Args["regexp"]; !ok {
+	if _, ok := conf.Args[regexpArgRE]; !ok {
 		return nil, fmt.Errorf("scan regexp arg is missing for %s", conf.Name)
 	}
-	re, err := regexp.Compile("(?m)" + conf.Args["regexp"])
+	re, err := regexp.Compile("(?m)" + conf.Args[regexpArgRE])
 	if err != nil {
-		return nil, fmt.Errorf("scan regexp does not compile for %s: %s: %w", conf.Name, conf.Args["regexp"], err)
+		return nil, fmt.Errorf("scan regexp does not compile for %s: %s: %w", conf.Name, conf.Args[regexpArgRE], err)
 	}
 	// extract index of each subexp
 	subNames := re.SubexpNames()
@@ -35,8 +40,8 @@ func newREScan(conf config.Scan, srcRdr io.ReadCloser, a *action.Action, filenam
 		nameInd[name] = i
 	}
 	// verify regexp contains a "Version" match
-	if _, ok := nameInd["Version"]; !ok {
-		return nil, fmt.Errorf("scan regexp is missing Version submatch (i.e. \"(?P<Version>\\d+)\") for %s: %s", conf.Name, conf.Args["regexp"])
+	if _, ok := nameInd[regexpVersion]; !ok {
+		return nil, fmt.Errorf("scan regexp is missing Version submatch (i.e. \"(?P<Version>\\d+)\") for %s: %s", conf.Name, conf.Args[regexpArgRE])
 	}
 
 	// create pipe
@@ -80,20 +85,19 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 		for name, i := range r.nameInd {
 			i1, i2 := i*2, (i*2)+1
 			if i2 >= len(matchIndexes) {
-				// skip if not enough entries in match
-				// TODO: should this fail/error
-				continue
+				pw.CloseWithError(fmt.Errorf("regexp matches did not match compiled named field list (%d >= %d): %s", i2, len(matchIndexes), r.conf.Args[regexpArgRE]))
+				return
 			}
 			regexpMatches[name] = string(b[matchIndexes[i1]:matchIndexes[i2]])
 		}
 		matchData.ScanMatch = regexpMatches
-		change, newVer, err := r.action.HandleMatch(r.filename, r.conf.Name, r.conf.Source, regexpMatches["Version"], matchData)
+		change, newVer, err := r.action.HandleMatch(r.filename, r.conf.Name, r.conf.Source, regexpMatches[regexpVersion], matchData)
 		if err != nil {
 			pw.CloseWithError(err)
 			return
 		}
 		// write up to version field
-		verI1 := r.nameInd["Version"] * 2
+		verI1 := r.nameInd[regexpVersion] * 2
 		verI2 := verI1 + 1
 		if lastIndex < matchIndexes[verI1] {
 			_, err = pw.Write(b[lastIndex:matchIndexes[verI1]])
@@ -102,6 +106,10 @@ func (r *reScan) handlePipe(pw *io.PipeWriter) {
 				return
 			}
 			lastIndex = matchIndexes[verI1]
+		}
+		if lastIndex > matchIndexes[verI1] {
+			pw.CloseWithError(fmt.Errorf("regexp match went backwards in the stream (%d > %d): %s", lastIndex, matchIndexes[verI1], r.conf.Args[regexpArgRE]))
+			return
 		}
 		// write changed version
 		if change {
