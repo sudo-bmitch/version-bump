@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,11 +12,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/sudo-bmitch/version-bump/internal/action"
 	"github.com/sudo-bmitch/version-bump/internal/config"
 	"github.com/sudo-bmitch/version-bump/internal/filesearch"
 	"github.com/sudo-bmitch/version-bump/internal/lockfile"
-	"github.com/sudo-bmitch/version-bump/internal/scan"
+	"github.com/sudo-bmitch/version-bump/internal/processor"
 	"github.com/sudo-bmitch/version-bump/internal/template"
 	"github.com/sudo-bmitch/version-bump/internal/version"
 )
@@ -28,13 +28,14 @@ const (
 )
 
 type cliOpts struct {
-	chdir    string
-	confFile string
-	lockFile string
-	dryrun   bool
-	prune    bool
-	format   string
-	scans    []string
+	chdir      string
+	confFile   string
+	lockFile   string
+	dryrun     bool
+	prune      bool
+	format     string
+	processors []string
+	scans      []string
 	// TODO: setup logging
 	// verbosity string
 	// logopts   []string
@@ -101,7 +102,9 @@ By default, the current directory is changed to the location of the config file.
 		cmd.Flags().StringVarP(&rootOpts.confFile, "conf", "c", "", "Config file to load")
 		cmd.Flags().BoolVar(&rootOpts.dryrun, "dry-run", false, "Dry run")
 		cmd.Flags().BoolVar(&rootOpts.prune, "prune", false, "Prune unused entries (default to true when no files are listed)")
-		cmd.Flags().StringArrayVar(&rootOpts.scans, "scan", []string{}, "Only run specific scans")
+		cmd.Flags().StringArrayVar(&rootOpts.processors, "processor", []string{}, "Only run specific processors")
+		cmd.Flags().StringArrayVar(&rootOpts.scans, "scan", []string{}, "Deprecated: Only run specific scans")
+		_ = cmd.Flags().MarkHidden("scan")
 		rootCmd.AddCommand(cmd)
 	}
 
@@ -113,6 +116,13 @@ By default, the current directory is changed to the location of the config file.
 
 func (cli *cliOpts) runAction(cmd *cobra.Command, args []string) error {
 	origDir := "."
+	ctx := cmd.Context()
+	// validate inputs
+	if len(cli.scans) > 0 {
+		// TODO: use logging library
+		_, _ = cmd.ErrOrStderr().Write([]byte("warning: scan flag is deprecated, switch to processor"))
+		cli.processors = append(cli.processors, cli.scans...)
+	}
 	// parse config
 	conf, err := cli.getConf()
 	if err != nil {
@@ -140,48 +150,38 @@ func (cli *cliOpts) runAction(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("unable to change directory to %s: %w", cli.chdir, err)
 		}
 	}
-
-	confRun := &action.Opts{
-		DryRun: cli.dryrun,
-		Locks:  locks,
-	}
+	action := cmd.Name()
 	switch cmd.Name() {
-	case "check":
-		confRun.Action = action.ActionCheck
-	case "scan":
-		confRun.Action = action.ActionScan
-	case "update":
-		confRun.Action = action.ActionUpdate
+	case "check", "scan", "update":
 	default:
 		return fmt.Errorf("unhandled command %s", cmd.Name())
 	}
-	act := action.New(confRun, *conf)
 
 	// loop over files
 	walk, err := filesearch.New(args, conf.Files)
 	if err != nil {
 		return err
 	}
+	changes := []*processor.Change{}
 	for {
-		filename, key, err := walk.Next()
+		filename, fileKey, err := walk.Next()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
 			return err
 		}
-		fmt.Printf("processing file: %s for config %s\n", filename, key)
-		err = cli.procFile(filename, key, conf, act)
+		fmt.Printf("processing file: %s for config %s\n", filename, fileKey)
+		curChanges, err := cli.procFile(ctx, filename, fileKey, conf, action, locks)
 		if err != nil {
 			return err
 		}
-	}
-	err = act.Done()
-	if err != nil {
-		return err
+		if len(curChanges) > 0 {
+			changes = append(changes, curChanges...)
+		}
 	}
 	// display changes
-	for _, change := range confRun.Changes {
+	for _, change := range changes {
 		fmt.Printf("Version changed: filename=%s, scan=%s, source=%s, key=%s, old=%s, new=%s\n",
 			change.Filename, change.Scan, change.Source, change.Key, change.Orig, change.New)
 	}
@@ -193,14 +193,14 @@ func (cli *cliOpts) runAction(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if !cli.dryrun {
-		switch confRun.Action {
-		case action.ActionScan, action.ActionUpdate:
+		switch action {
+		case "scan", "update":
 			err = cli.locksSave(locks, cli.prune)
 			if err != nil {
 				return err
 			}
-		case action.ActionCheck:
-			if len(confRun.Changes) > 0 {
+		case "check":
+			if len(changes) > 0 {
 				return fmt.Errorf("changes detected")
 			}
 		}
@@ -258,52 +258,86 @@ func (cli *cliOpts) locksSave(l *lockfile.Locks, used bool) error {
 	return l.SaveFile(cli.lockFile, used)
 }
 
-func (cli *cliOpts) procFile(filename string, fileConf string, conf *config.Config, act *action.Action) (err error) {
+type procFileChan struct {
+	changes []*processor.Change
+	err     error
+}
+
+func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey string, conf *config.Config, action string, locks *lockfile.Locks) ([]*processor.Change, error) {
 	// TODO: for large files, write to a tmp file instead of using an in-memory buffer
 	origBytes, err := os.ReadFile(filename)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	origRdr := bytes.NewReader(origBytes)
-	var curFH io.ReadCloser
-	curFH = io.NopCloser(origRdr)
-	defer func() {
-		if curFH != nil {
-			newErr := curFH.Close()
-			if newErr != nil && err == nil {
-				err = newErr
-			}
-		}
-	}()
-	scanFound := false
-	for _, s := range conf.Files[fileConf].Scans {
+	bRdr := bytes.NewReader(origBytes)
+	var rdr io.ReadCloser
+	rdr = io.NopCloser(bRdr)
+	procCount := 0
+	procResult := make(chan procFileChan)
+	for _, p := range conf.Files[fileKey].Processors {
 		// skip scans when CLI arg requests specific scans
-		if len(cli.scans) > 0 && !containsStr(cli.scans, s) {
+		if len(cli.processors) > 0 && !containsStr(cli.processors, p) {
 			continue
 		}
-		if _, ok := conf.Scans[s]; !ok {
-			return fmt.Errorf("missing scan config: %s, file config: %s, reading file: %s", s, fileConf, filename)
+		if _, ok := conf.Processors[p]; !ok {
+			return nil, fmt.Errorf("missing processor config: %s, file config: %s, reading file: %s", p, fileKey, filename)
 		}
-		curScan, err := scan.New(*conf.Scans[s], curFH, act, filename)
-		if err != nil {
-			return fmt.Errorf("failed scanning file \"%s\", scan \"%s\": %w", filename, s, err)
-		}
-		curFH = curScan
-		scanFound = true
+		procCount++
+		pr, pw := io.Pipe()
+		// run processor in goroutine to read and write detected changes
+		go func(procName string, r io.ReadCloser, w io.WriteCloser) {
+			changes, pErr := processor.Process(ctx, *conf, procName, filename, r, w, locks)
+			rErr := r.Close()
+			wErr := w.Close()
+			var err error
+			if pErr != nil {
+				if rErr != nil || wErr != nil {
+					err = errors.Join(pErr, rErr, wErr)
+				} else {
+					err = pErr
+				}
+			}
+			procResult <- procFileChan{
+				changes: changes,
+				err:     err,
+			}
+		}(p, rdr, pw)
+		// increment reader
+		rdr = pr
 	}
-	if !scanFound {
-		return nil
+	if procCount == 0 {
+		return nil, nil
 	}
-	finalBytes, err := io.ReadAll(curFH)
+	// TODO: discard when not updating file, and consider outputting directly to the temp file for large files
+	finalBytes, err := io.ReadAll(rdr)
 	if err != nil {
-		return fmt.Errorf("failed scanning file \"%s\": %w", filename, err)
+		return nil, fmt.Errorf("failed scanning file \"%s\": %w", filename, err)
 	}
-	// if the file was changed, output to a tmpfile and then copy/replace orig file
-	if !bytes.Equal(origBytes, finalBytes) {
+	err = rdr.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed closing reader while scanning \"%s\": %w", filename, err)
+	}
+	// check results from goroutines
+	errs := []error{}
+	changes := []*processor.Change{}
+	for i := 0; i < procCount; i++ {
+		curResult := <-procResult
+		if curResult.err != nil {
+			errs = append(errs, curResult.err)
+		}
+		if len(curResult.changes) > 0 {
+			changes = append(changes, curResult.changes...)
+		}
+	}
+	if len(errs) > 0 {
+		return changes, errors.Join(errs...)
+	}
+	// if the file was changed and updates are being performed, output to a tmpfile and then copy/replace orig file
+	if !cli.dryrun && action == "update" && !bytes.Equal(origBytes, finalBytes) {
 		dir := filepath.Dir(filename)
 		tmp, err := os.CreateTemp(dir, filepath.Base(filename))
 		if err != nil {
-			return fmt.Errorf("unable to create temp file in %s: %w", dir, err)
+			return nil, fmt.Errorf("unable to create temp file in %s: %w", dir, err)
 		}
 		tmpName := tmp.Name()
 		_, err = tmp.Write(finalBytes)
@@ -314,7 +348,7 @@ func (cli *cliOpts) procFile(filename string, fileConf string, conf *config.Conf
 			}
 		}()
 		if err != nil {
-			return fmt.Errorf("failed to write temp file %s: %w", tmpName, err)
+			return nil, fmt.Errorf("failed to write temp file %s: %w", tmpName, err)
 		}
 		// update permissions to match existing file or 0644
 		mode := os.FileMode(0644)
@@ -323,14 +357,14 @@ func (cli *cliOpts) procFile(filename string, fileConf string, conf *config.Conf
 			mode = stat.Mode()
 		}
 		if err := os.Chmod(tmpName, mode); err != nil {
-			return fmt.Errorf("failed to adjust permissions on file %s: %w", filename, err)
+			return nil, fmt.Errorf("failed to adjust permissions on file %s: %w", filename, err)
 		}
 		// move temp file to target filename
 		if err := os.Rename(tmpName, filename); err != nil {
-			return fmt.Errorf("failed to rename file %s to %s: %w", tmpName, filename, err)
+			return nil, fmt.Errorf("failed to rename file %s to %s: %w", tmpName, filename, err)
 		}
 	}
-	return nil
+	return changes, nil
 }
 
 func containsStr(strList []string, str string) bool {

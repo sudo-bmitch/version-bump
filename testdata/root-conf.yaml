@@ -1,19 +1,30 @@
 files:
   "root-*.txt":
-    scans:
-      - root-manual
+    processors:
+    - "root-manual"
+
+processors:
+  "root-manual":
+    key: "root-manual-ver"
+    scan: "regexp"
+    scanArgs:
+      regexp: '^manual-ver=(?P<Version>[^\s]+)\s*$'
+    source: "manual"
+    sourceArgs:
+      Version: "good"
+  "root-missing":
+    key: "root-missing-ver"
+    scan: "regexp"
+    scanArgs:
+      regexp: '^no-such-match=(?<Version>\d+)$'
+    source: "manual"
+    sourceArgs:
+      Version: "nope"
 
 scans:
-  "root-manual":
+  "regexp":
     type: "regexp"
-    source: "root-manual"
-    args:
-      regexp: '^manual-ver=(?P<Version>[^\s]+)\s*$'
-      key: "root-manual-ver"
 
 sources:
-  "root-manual":
+  "manual":
     type: "manual"
-    key: "{{ .ScanArgs.key }}"
-    args:
-      Version: "good"

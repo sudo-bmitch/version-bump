@@ -53,6 +53,15 @@ func TestRootCmd(t *testing.T) {
 			args:      []string{"check", "--conf", "./testdata/root-conf.yaml", "root-bad.txt"},
 			expectErr: fmt.Errorf("changes detected"),
 		},
+		{
+			name: "Check-Old-Good",
+			args: []string{"check", "--conf", "./testdata/root-conf-old.yaml", "root-good.txt"},
+		},
+		{
+			name:      "Check-Old-Bad",
+			args:      []string{"check", "--conf", "./testdata/root-conf-old.yaml", "root-bad.txt"},
+			expectErr: fmt.Errorf("changes detected"),
+		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {

@@ -6,38 +6,17 @@ import (
 	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
-type manual struct {
-	conf config.Source
-}
-
-func newManual(conf config.Source) Source {
+func newManual(conf config.Source) (Results, error) {
 	if conf.Args == nil {
 		conf.Args = map[string]string{}
 	}
 	if _, ok := conf.Args["Version"]; !ok {
-		conf.Args["Version"] = "{{ .ScanMatch.Version }}"
+		return Results{}, fmt.Errorf("manual source is missing a Version arg")
 	}
-	return manual{conf: conf}
-}
-
-func (m manual) Get(data config.SourceTmplData) (string, error) {
-	confExp, err := m.conf.ExpandTemplate(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
+	res := Results{
+		VerMap: map[string]string{
+			conf.Args["Version"]: conf.Args["Version"],
+		},
 	}
-	if _, ok := confExp.Args["Version"]; !ok {
-		return "", fmt.Errorf("manual source is missing a version arg")
-	}
-	verData := VersionTmplData{
-		Version: confExp.Args["Version"],
-	}
-	return procResult(confExp, verData)
-}
-
-func (m manual) Key(data config.SourceTmplData) (string, error) {
-	confExp, err := m.conf.ExpandTemplate(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
-	}
-	return confExp.Key, nil
+	return res, nil
 }

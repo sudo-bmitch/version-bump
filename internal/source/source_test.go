@@ -10,266 +10,216 @@ import (
 
 func TestSource(t *testing.T) {
 	tests := []struct {
-		name         string
-		confSrc      config.Source
-		data         config.SourceTmplData
-		errGetSource error
-		errGet       error
-		errKey       error
-		expectGet    string
-		expectKey    string
+		name       string
+		conf       config.Source
+		err        error
+		expect     Results
+		exactMatch bool
 	}{
 		{
 			name: "unknown type",
-			confSrc: config.Source{
+			conf: config.Source{
 				Type: "unknown",
 			},
-			errGetSource: fmt.Errorf("source type not known: unknown"),
+			err: fmt.Errorf("source type not found: unknown"),
 		},
 		{
 			name: "custom",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "custom",
 				Type: "custom",
-				Key:  "custom-test",
 				Args: map[string]string{
 					"cmd": "echo 1.2.3.4",
 				},
 			},
-			data: config.SourceTmplData{
-				Filename:  "/dev/null",
-				ScanArgs:  map[string]string{},
-				ScanMatch: map[string]string{},
-				SourceArgs: map[string]string{
-					"cmd": "echo 1.2.3.4",
+			expect: Results{
+				VerMap: map[string]string{
+					"1.2.3.4": "1.2.3.4",
 				},
 			},
-			expectGet: "1.2.3.4",
-			expectKey: "custom-test",
+			exactMatch: true,
 		},
 		{
 			name: "manual",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "manual",
 				Type: "manual",
-				Key:  "{{ .ScanArgs.Key }}",
-				Args: map[string]string{},
-			},
-			data: config.SourceTmplData{
-				Filename: "/dev/null",
-				ScanArgs: map[string]string{
-					"Key": "manual-test",
-				},
-				ScanMatch: map[string]string{
+				Args: map[string]string{
 					"Version": "4.3.2.1",
 				},
-				SourceArgs: map[string]string{},
 			},
-			expectGet: "4.3.2.1",
-			expectKey: "manual-test",
+			expect: Results{
+				VerMap: map[string]string{
+					"4.3.2.1": "4.3.2.1",
+				},
+			},
+			exactMatch: true,
 		},
 		{
 			name: "git tags",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "git tags",
 				Type: "git",
-				Key:  "git tag",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
 					"url":  "https://github.com/regclient/regclient.git",
 					"type": "tag",
 				},
-				Filter: config.SourceFilter{
-					Expr: `^v0.4.[1-5]$`,
-				},
-				Sort: config.SourceSort{
-					Method: "semver",
-				},
-				Template: `["{{ index .VerMap ( index .VerList 1 ) }}", "{{ index .VerMap ( index .VerList 0 ) }}"]`,
 			},
-			data: config.SourceTmplData{
-				Filename:   "/dev/null",
-				ScanArgs:   map[string]string{},
-				ScanMatch:  map[string]string{},
-				SourceArgs: map[string]string{},
+			expect: Results{
+				VerMap: map[string]string{
+					"v0.0.1": "v0.0.1",
+					"v0.1.0": "v0.1.0",
+					"v0.3.0": "v0.3.0",
+					"v0.4.0": "v0.4.0",
+					"v0.4.1": "v0.4.1",
+				},
 			},
-			expectGet: `["v0.4.4", "v0.4.5"]`,
-			expectKey: "git tag",
+			exactMatch: false, // only a partial list of expected results
 		},
 		{
 			name: "git ref",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "git ref",
 				Type: "git",
-				Key:  "git ref",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
 					"url":  "https://github.com/regclient/regclient.git",
 					"type": "ref",
 				},
-				Filter: config.SourceFilter{
-					Expr: `^v0.4.3$`,
+			},
+			expect: Results{
+				VerMap: map[string]string{
+					"v0.4.0": "9546658ede6901191b9692a7f720c37150940ddd",
+					"v0.4.1": "4442cd773c348d7d5e6bd2b9a0cb58e2bce81d67",
+					"v0.4.2": "c8125cd51a02bbff6a002f77eb8458b7a7753b63",
+					"v0.4.3": "b0ac3e9413b1079c8b14df5c201a2a2129d9d9e1",
 				},
 			},
-			data: config.SourceTmplData{
-				Filename:   "/dev/null",
-				ScanArgs:   map[string]string{},
-				ScanMatch:  map[string]string{},
-				SourceArgs: map[string]string{},
-			},
-			expectGet: "b0ac3e9413b1079c8b14df5c201a2a2129d9d9e1",
-			expectKey: "git ref",
+			exactMatch: false, // only a partial list of expected results
 		},
 		{
 			name: "registry tags",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "registry tags",
 				Type: "registry",
-				Key:  "registry tag",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
 					"repo": "ghcr.io/regclient/regctl",
 					"type": "tag",
 				},
-				Filter: config.SourceFilter{
-					Expr: `^v0.4.[1-5]$`,
-				},
-				Sort: config.SourceSort{
-					Method: "semver",
-					Asc:    true, // reverse the sort
-				},
-				Template: `["{{ index .VerMap ( index .VerList 1 ) }}", "{{ index .VerMap ( index .VerList 0 ) }}"]`,
 			},
-			data: config.SourceTmplData{
-				Filename:   "/dev/null",
-				ScanArgs:   map[string]string{},
-				ScanMatch:  map[string]string{},
-				SourceArgs: map[string]string{},
+			expect: Results{
+				VerMap: map[string]string{
+					"v0.4.0": "v0.4.0",
+					"v0.4.1": "v0.4.1",
+					"v0.4.2": "v0.4.2",
+					"v0.4.3": "v0.4.3",
+					"v0.4.4": "v0.4.4",
+					"v0.4.5": "v0.4.5",
+				},
 			},
-			expectGet: `["v0.4.2", "v0.4.1"]`,
-			expectKey: "registry tag",
+			exactMatch: false, // only a partial list of expected results
 		},
 		{
 			name: "registry digest",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "registry digest",
 				Type: "registry",
-				Key:  "registry digest",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
 					"image": "ghcr.io/regclient/regctl:v0.4.3",
 					"type":  "digest",
 				},
 			},
-			data: config.SourceTmplData{
-				Filename:   "/dev/null",
-				ScanArgs:   map[string]string{},
-				ScanMatch:  map[string]string{},
-				SourceArgs: map[string]string{},
+			expect: Results{
+				VerMap: map[string]string{
+					"sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138": "sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138",
+				},
 			},
-			expectGet: "sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138",
-			expectKey: "registry digest",
+			exactMatch: true,
 		},
 		{
 			name: "github release version",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "github release",
 				Type: "gh-release",
-				Key:  "github release",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
 					"repo": "regclient/regclient",
 				},
-				Filter: config.SourceFilter{
-					Expr:     `^v0.4.[1-5]$`,
-					Template: `{{ .Meta.TagName }}`,
-				},
-				Sort: config.SourceSort{
-					Method: "semver",
-				},
-				Template: `["{{ index .VerMap ( index .VerList 1 ) }}", "{{ index .VerMap ( index .VerList 0 ) }}"]`,
 			},
-			data: config.SourceTmplData{
-				Filename:   "/dev/null",
-				ScanArgs:   map[string]string{},
-				ScanMatch:  map[string]string{},
-				SourceArgs: map[string]string{},
+			expect: Results{
+				VerMap: map[string]string{
+					"v0.4.0": "v0.4.0",
+					"v0.4.1": "v0.4.1",
+					"v0.4.2": "v0.4.2",
+					"v0.4.3": "v0.4.3",
+					"v0.4.4": "v0.4.4",
+					"v0.4.5": "v0.4.5",
+				},
 			},
-			expectGet: `["v0.4.4", "v0.4.5"]`,
-			expectKey: "github release",
+			exactMatch: false, // only a partial list of expected results
 		},
 		{
 			name: "github release artifact",
-			confSrc: config.Source{
+			conf: config.Source{
 				Name: "github artifact",
 				Type: "gh-release",
-				Key:  "github artifact",
 				Args: map[string]string{
 					// TODO: switch to version-bump repo after it has enough tags
 					"repo":     "regclient/regclient",
 					"type":     "artifact",
 					"artifact": "regctl-linux-amd64",
 				},
-				Filter: config.SourceFilter{
-					Expr: `^v0.4.[1-5]$`,
-				},
-				Sort: config.SourceSort{
-					Method: "semver",
-				},
-				// Template: `["{{ index .VerMap ( index .VerList 1 ) }}", "{{ index .VerMap ( index .VerList 0 ) }}"]`,
 			},
-			data: config.SourceTmplData{
-				Filename:   "/dev/null",
-				ScanArgs:   map[string]string{},
-				ScanMatch:  map[string]string{},
-				SourceArgs: map[string]string{},
+			expect: Results{
+				VerMap: map[string]string{
+					"v0.4.0": `https://github.com/regclient/regclient/releases/download/v0.4.0/regctl-linux-amd64`,
+					"v0.4.1": `https://github.com/regclient/regclient/releases/download/v0.4.1/regctl-linux-amd64`,
+					"v0.4.5": `https://github.com/regclient/regclient/releases/download/v0.4.5/regctl-linux-amd64`,
+				},
 			},
-			expectGet: `https://github.com/regclient/regclient/releases/download/v0.4.5/regctl-linux-amd64`,
-			expectKey: "github artifact",
+			exactMatch: false, // only a partial list of expected results
 		},
-		// TODO: numeric sort
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			src, err := Get(tt.confSrc)
-			if tt.errGetSource != nil {
+			results, err := Get(tt.conf)
+			if tt.err != nil {
 				if err == nil {
 					t.Errorf("get source did not fail")
-				} else if !errors.Is(err, tt.errGetSource) && err.Error() != tt.errGetSource.Error() {
-					t.Errorf("unexpected error, expected %v, received %v", tt.errGetSource, err)
+				} else if !errors.Is(err, tt.err) && err.Error() != tt.err.Error() {
+					t.Errorf("unexpected error, expected %v, received %v", tt.err, err)
 				}
 				return
 			} else if err != nil {
 				t.Errorf("get source failed: %v", err)
 				return
 			}
-			getStr, err := src.Get(tt.data)
-			if tt.errGet != nil {
-				if err == nil {
-					t.Errorf("get did not fail")
-				} else if !errors.Is(err, tt.errGet) && err.Error() != tt.errGet.Error() {
-					t.Errorf("unexpected error, expected %v, received %v", tt.errGet, err)
+			if tt.expect.VerMap != nil && results.VerMap == nil {
+				t.Errorf("results.VerMap is nil")
+			} else {
+				for k, v := range tt.expect.VerMap {
+					if results.VerMap[k] != v {
+						t.Errorf("results.VerMap[%s] expect %s, received %s", k, v, results.VerMap[k])
+					}
 				}
-				return
-			} else if err != nil {
-				t.Errorf("get failed: %v", err)
-				return
-			} else if tt.expectGet != getStr {
-				t.Errorf("get unexpected response, expected %s, received %s", tt.expectGet, getStr)
 			}
-			keyStr, err := src.Key(tt.data)
-			if tt.errKey != nil {
-				if err == nil {
-					t.Errorf("key did not fail")
-				} else if !errors.Is(err, tt.errKey) && err.Error() != tt.errKey.Error() {
-					t.Errorf("unexpected error, expected %v, received %v", tt.errKey, err)
+			if tt.exactMatch && len(tt.expect.VerMap) != len(results.VerMap) {
+				t.Errorf("results.VerMap is not an exact match: %v != %v", tt.expect.VerMap, results.VerMap)
+			}
+			if tt.expect.VerMeta != nil && results.VerMeta == nil {
+				t.Errorf("results.VerMeta is nil")
+			} else {
+				for k, v := range tt.expect.VerMeta {
+					if results.VerMeta[k] != v {
+						t.Errorf("results.VerMeta[%s] expect %s, received %s", k, v, results.VerMeta[k])
+					}
 				}
-				return
-			} else if err != nil {
-				t.Errorf("key failed: %v", err)
-				return
-			} else if tt.expectKey != keyStr {
-				t.Errorf("key unexpected response, expected %s, received %s", tt.expectKey, keyStr)
+			}
+			if tt.exactMatch && len(tt.expect.VerMeta) != len(results.VerMeta) {
+				t.Errorf("results.VerMeta is not an exact match: %v != %v", tt.expect.VerMeta, results.VerMeta)
 			}
 		})
 	}

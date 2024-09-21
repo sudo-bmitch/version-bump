@@ -17,27 +17,20 @@ import (
 const ()
 
 type ghRelease struct {
-	conf       config.Source
 	httpClient *http.Client
 }
 
-func newGHRelease(conf config.Source) Source {
-	return ghRelease{conf: conf, httpClient: http.DefaultClient}
-}
+func newGHRelease(conf config.Source) (Results, error) {
+	g := ghRelease{httpClient: http.DefaultClient}
 
-func (g ghRelease) Get(data config.SourceTmplData) (string, error) {
-	confExp, err := g.conf.ExpandTemplate(data)
+	releases, err := g.getReleaseList(conf)
 	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
+		return Results{}, err
 	}
-	releases, err := g.getReleaseList(confExp)
-	if err != nil {
-		return "", err
+	if conf.Args["type"] == "artifact" {
+		return g.getArtifact(conf, releases)
 	}
-	if confExp.Args["type"] == "artifact" {
-		return g.getArtifact(confExp, releases)
-	}
-	return g.getReleaseName(confExp, releases)
+	return g.getReleaseName(conf, releases)
 }
 
 var (
@@ -45,18 +38,18 @@ var (
 	ghCacheLock sync.Mutex
 )
 
-func (g ghRelease) getReleaseList(confExp config.Source) ([]*GHRelease, error) {
-	if _, ok := confExp.Args["repo"]; !ok {
+func (g ghRelease) getReleaseList(conf config.Source) ([]*GHRelease, error) {
+	if _, ok := conf.Args["repo"]; !ok {
 		return nil, fmt.Errorf("repo argument is required")
 	}
-	if releases, ok := ghCache[confExp.Args["repo"]]; ok {
+	if releases, ok := ghCache[conf.Args["repo"]]; ok {
 		return releases, nil
 	}
 	ghCacheLock.Lock()
 	defer ghCacheLock.Unlock()
-	u, err := url.Parse("https://api.github.com/repos/" + confExp.Args["repo"] + "/releases")
+	u, err := url.Parse("https://api.github.com/repos/" + conf.Args["repo"] + "/releases")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse api url, check repo syntax (%s should be org/proj): %w", confExp.Args["repo"], err)
+		return nil, fmt.Errorf("failed to parse api url, check repo syntax (%s should be org/proj): %w", conf.Args["repo"], err)
 	}
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -85,28 +78,28 @@ func (g ghRelease) getReleaseList(confExp config.Source) ([]*GHRelease, error) {
 		return nil, fmt.Errorf("failed to decode release API response: %w", err)
 	}
 	// cache result for future requests
-	ghCache[confExp.Args["repo"]] = releases
+	ghCache[conf.Args["repo"]] = releases
 	return releases, nil
 }
 
-func (g ghRelease) getReleaseName(confExp config.Source, releases []*GHRelease) (string, error) {
+func (g ghRelease) getReleaseName(conf config.Source, releases []*GHRelease) (Results, error) {
 	var err error
-	verData := VersionTmplData{
+	res := Results{
 		VerMap:  map[string]string{},
 		VerMeta: map[string]interface{}{},
 	}
 	allowDraft := false
-	if val, ok := confExp.Args["allowDraft"]; ok {
+	if val, ok := conf.Args["allowDraft"]; ok {
 		allowDraft, err = strconv.ParseBool(val)
 		if err != nil {
-			return "", fmt.Errorf("allowDraft must be a bool value: \"%s\": %w", val, err)
+			return Results{}, fmt.Errorf("allowDraft must be a bool value: \"%s\": %w", val, err)
 		}
 	}
 	allowPrerelease := false
-	if val, ok := confExp.Args["allowPrerelease"]; ok {
+	if val, ok := conf.Args["allowPrerelease"]; ok {
 		allowPrerelease, err = strconv.ParseBool(val)
 		if err != nil {
-			return "", fmt.Errorf("allowPrerelease must be a bool value: \"%s\": %w", val, err)
+			return Results{}, fmt.Errorf("allowPrerelease must be a bool value: \"%s\": %w", val, err)
 		}
 	}
 	for _, r := range releases {
@@ -117,34 +110,34 @@ func (g ghRelease) getReleaseName(confExp config.Source, releases []*GHRelease) 
 		if r.Prerelease && !allowPrerelease {
 			continue
 		}
-		verData.VerMap[r.TagName] = r.TagName
-		verData.VerMeta[r.TagName] = r
+		res.VerMap[r.TagName] = r.TagName
+		res.VerMeta[r.TagName] = r
 	}
-	return procResult(confExp, verData)
+	return res, nil
 }
 
-func (g ghRelease) getArtifact(confExp config.Source, releases []*GHRelease) (string, error) {
+func (g ghRelease) getArtifact(conf config.Source, releases []*GHRelease) (Results, error) {
 	var err error
-	verData := VersionTmplData{
+	res := Results{
 		VerMap:  map[string]string{},
 		VerMeta: map[string]interface{}{},
 	}
-	artifactName, ok := confExp.Args["artifact"]
+	artifactName, ok := conf.Args["artifact"]
 	if !ok {
-		return "", fmt.Errorf("missing arg \"artifact\"")
+		return Results{}, fmt.Errorf("missing arg \"artifact\"")
 	}
 	allowDraft := false
-	if val, ok := confExp.Args["allowDraft"]; ok {
+	if val, ok := conf.Args["allowDraft"]; ok {
 		allowDraft, err = strconv.ParseBool(val)
 		if err != nil {
-			return "", fmt.Errorf("allowDraft must be a bool value: \"%s\": %w", val, err)
+			return Results{}, fmt.Errorf("allowDraft must be a bool value: \"%s\": %w", val, err)
 		}
 	}
 	allowPrerelease := false
-	if val, ok := confExp.Args["allowPrerelease"]; ok {
+	if val, ok := conf.Args["allowPrerelease"]; ok {
 		allowPrerelease, err = strconv.ParseBool(val)
 		if err != nil {
-			return "", fmt.Errorf("allowPrerelease must be a bool value: \"%s\": %w", val, err)
+			return Results{}, fmt.Errorf("allowPrerelease must be a bool value: \"%s\": %w", val, err)
 		}
 	}
 	for _, r := range releases {
@@ -158,24 +151,16 @@ func (g ghRelease) getArtifact(confExp config.Source, releases []*GHRelease) (st
 		for _, asset := range r.Assets {
 			if asset.Name == artifactName {
 				asset := asset
-				verData.VerMap[r.TagName] = asset.DownloadURL
-				verData.VerMeta[r.TagName] = asset
+				res.VerMap[r.TagName] = asset.DownloadURL
+				res.VerMeta[r.TagName] = asset
 				break
 			}
 		}
 	}
-	if len(verData.VerMap) <= 0 {
-		return "", fmt.Errorf("no releases found with artifact \"%s\"", artifactName)
+	if len(res.VerMap) <= 0 {
+		return Results{}, fmt.Errorf("no releases found with artifact \"%s\"", artifactName)
 	}
-	return procResult(confExp, verData)
-}
-
-func (g ghRelease) Key(data config.SourceTmplData) (string, error) {
-	confExp, err := g.conf.ExpandTemplate(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
-	}
-	return confExp.Key, nil
+	return res, nil
 }
 
 type GHRelease struct {

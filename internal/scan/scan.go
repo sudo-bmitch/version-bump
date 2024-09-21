@@ -2,10 +2,10 @@
 package scan
 
 import (
+	"context"
 	"fmt"
 	"io"
 
-	"github.com/sudo-bmitch/version-bump/internal/action"
 	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
@@ -16,19 +16,19 @@ import (
 // - always track each match and update state in a lock file
 
 type Scan interface {
-	io.ReadCloser
+	Scan(ctx context.Context, filename string, r io.Reader, w io.Writer, getVer func(curVer string, args map[string]string) string) error
 }
 
-type newScan func(config.Scan, io.ReadCloser, *action.Action, string) (Scan, error)
+type runScan func(ctx context.Context, conf config.Scan, filename string, r io.Reader, w io.Writer, getVer func(curVer string, args map[string]string) (string, error)) error
 
-var scanTypes map[string]newScan = map[string]newScan{
-	"regexp": newREScan,
+var scanTypes map[string]runScan = map[string]runScan{
+	"regexp": runREScan,
 }
 
-// New creates a new scan of a given type
-func New(conf config.Scan, rc io.ReadCloser, a *action.Action, filename string) (Scan, error) {
-	if s, ok := scanTypes[conf.Type]; ok {
-		return s(conf, rc, a, filename)
+// Run executes the selected scanner.
+func Run(ctx context.Context, conf config.Scan, filename string, r io.Reader, w io.Writer, getVer func(curVer string, args map[string]string) (string, error)) error {
+	if rs, ok := scanTypes[conf.Type]; ok {
+		return rs(ctx, conf, filename, r, w, getVer)
 	}
-	return nil, fmt.Errorf("scan type not known: %s", conf.Type)
+	return fmt.Errorf("scan type not known: %s", conf.Type)
 }
