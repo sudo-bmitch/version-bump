@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
-
-	"golang.org/x/exp/maps"
 )
 
 // Lock stores known versions from a scan or source
@@ -116,10 +114,10 @@ func (l *Locks) SaveWriter(write io.Writer, used bool) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	// sort to keep the file deterministic
-	names := maps.Keys(l.Lock)
+	names := mapKeys(l.Lock)
 	sort.Strings(names)
 	for _, name := range names {
-		keys := maps.Keys(l.Lock[name])
+		keys := mapKeys(l.Lock[name])
 		sort.Strings(keys)
 		for _, key := range keys {
 			if used && !l.Lock[name][key].used {
@@ -171,4 +169,12 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 		return fmt.Errorf("failed to replace lockfile %s: %w", filename, err)
 	}
 	return nil
+}
+
+func mapKeys[M ~map[K]V, K comparable, V any](m M) []K {
+	kList := make([]K, 0, len(m))
+	for k := range m {
+		kList = append(kList, k)
+	}
+	return kList
 }
