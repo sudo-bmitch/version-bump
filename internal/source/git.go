@@ -12,85 +12,65 @@ import (
 
 const ()
 
-type gitSource struct {
-	conf config.Source
+func newGit(conf config.Source) (Results, error) {
+	if _, ok := conf.Args["url"]; !ok {
+		return Results{}, fmt.Errorf("url argument is required")
+	}
+	if conf.Args["type"] == "tag" {
+		return gitTag(conf)
+	}
+	return gitCommit(conf)
 }
 
-func newGit(conf config.Source) Source {
-	return gitSource{conf: conf}
-}
-
-func (g gitSource) Get(data config.SourceTmplData) (string, error) {
-	confExp, err := g.conf.ExpandTemplate(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
-	}
-	if _, ok := confExp.Args["url"]; !ok {
-		return "", fmt.Errorf("url argument is required")
-	}
-
-	if confExp.Args["type"] == "tag" {
-		return g.getTag(confExp)
-	}
-	return g.getCommit(confExp)
-}
-
-func (g gitSource) getRefs(confExp config.Source) ([]*plumbing.Reference, error) {
+func gitRefs(conf config.Source) ([]*plumbing.Reference, error) {
 	rem := git.NewRemote(memory.NewStorage(), &gitConfig.RemoteConfig{
 		Name: "origin",
-		URLs: []string{confExp.Args["url"]},
+		URLs: []string{conf.Args["url"]},
 	})
 	return rem.List(&git.ListOptions{
 		PeelingOption: git.AppendPeeled,
 	})
 }
 
-func (g gitSource) getCommit(confExp config.Source) (string, error) {
-	refs, err := g.getRefs(confExp)
+func gitCommit(conf config.Source) (Results, error) {
+	refs, err := gitRefs(conf)
 	if err != nil {
-		return "", err
+		return Results{}, err
 	}
-	verData := VersionTmplData{
+	res := Results{
 		VerMap: map[string]string{},
 	}
+	// make a map of tags to hashes
 	for _, ref := range refs {
-		verData.VerMap[ref.Name().Short()] = ref.Hash().String()
+		res.VerMap[ref.Name().Short()] = ref.Hash().String()
 	}
 	// loop over the map entries to prefer the peeled hash (underlying commit vs signed/annotated tag hash)
-	for k := range verData.VerMap {
-		if _, ok := verData.VerMap[k+"^{}"]; ok {
-			verData.VerMap[k] = verData.VerMap[k+"^{}"]
-			delete(verData.VerMap, k+"^{}")
+	for k := range res.VerMap {
+		if _, ok := res.VerMap[k+"^{}"]; ok {
+			res.VerMap[k] = res.VerMap[k+"^{}"]
+			delete(res.VerMap, k+"^{}")
 		}
 	}
-	if len(verData.VerMap) == 0 {
-		return "", fmt.Errorf("ref %s not found on %s", confExp.Args["ref"], confExp.Args["url"])
+	if len(res.VerMap) == 0 {
+		return Results{}, fmt.Errorf("no tagged commits found on %s", conf.Args["url"])
 	}
-	return procResult(confExp, verData)
+	return res, nil
 }
 
-func (g gitSource) getTag(confExp config.Source) (string, error) {
-	refs, err := g.getRefs(confExp)
+func gitTag(conf config.Source) (Results, error) {
+	refs, err := gitRefs(conf)
 	if err != nil {
-		return "", err
+		return Results{}, err
 	}
-	verData := VersionTmplData{
+	res := Results{
 		VerMap: map[string]string{},
 	}
-	// find matching tags
+	// make a map of tags
 	for _, ref := range refs {
-		verData.VerMap[ref.Name().Short()] = ref.Name().Short()
+		res.VerMap[ref.Name().Short()] = ref.Name().Short()
 	}
-	if len(verData.VerMap) == 0 {
-		return "", fmt.Errorf("no matching tags found")
+	if len(res.VerMap) == 0 {
+		return Results{}, fmt.Errorf("no tagged commits found on %s", conf.Args["url"])
 	}
-	return procResult(confExp, verData)
-}
-
-func (g gitSource) Key(data config.SourceTmplData) (string, error) {
-	confExp, err := g.conf.ExpandTemplate(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
-	}
-	return confExp.Key, nil
+	return res, nil
 }

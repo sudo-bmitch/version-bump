@@ -51,7 +51,7 @@ func New(paths []string, conf map[string]*config.File) (*walk, error) {
 	}, nil
 }
 
-// Next returns: filename, name of the matching File config, and any errors
+// Next returns: filename, name of the matching File expression in the config, and any errors
 func (w *walk) Next() (string, string, error) {
 	// loop until EOF, fatal error, or match found
 	for {

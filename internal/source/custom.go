@@ -12,37 +12,19 @@ const (
 	customCmd = "cmd"
 )
 
-type custom struct {
-	conf config.Source
-}
-
-func newCustom(conf config.Source) Source {
-	return custom{conf: conf}
-}
-
-func (c custom) Get(data config.SourceTmplData) (string, error) {
-	confExp, err := c.conf.ExpandTemplate(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
-	}
+func newCustom(src config.Source) (Results, error) {
 	// TODO: add support for exec, bypassing the shell, which means arg values need to also support arrays
-	if _, ok := confExp.Args[customCmd]; !ok {
-		return "", fmt.Errorf("custom source requires a cmd arg")
+	if _, ok := src.Args[customCmd]; !ok {
+		return Results{}, fmt.Errorf("custom source requires a cmd arg")
 	}
-	out, err := exec.Command("/bin/sh", "-c", confExp.Args[customCmd]).Output()
+	out, err := exec.Command("/bin/sh", "-c", src.Args[customCmd]).Output()
 	if err != nil {
-		return "", fmt.Errorf("failed running %s: %w", confExp.Args[customCmd], err)
+		return Results{}, fmt.Errorf("failed running %s: %w", src.Args[customCmd], err)
 	}
-	verData := VersionTmplData{
-		Version: strings.TrimSpace(string(out)),
-	}
-	return procResult(confExp, verData)
-}
-
-func (c custom) Key(data config.SourceTmplData) (string, error) {
-	confExp, err := c.conf.ExpandTemplate(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand template: %w", err)
-	}
-	return confExp.Key, nil
+	outVer := strings.TrimSpace(string(out))
+	return Results{
+		VerMap: map[string]string{
+			outVer: outVer,
+		},
+	}, nil
 }

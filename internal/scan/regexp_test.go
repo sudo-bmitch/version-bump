@@ -2,44 +2,19 @@ package scan
 
 import (
 	"bytes"
+	"context"
 	"errors"
-	"io"
 	"testing"
 
-	"github.com/sudo-bmitch/version-bump/internal/action"
 	"github.com/sudo-bmitch/version-bump/internal/config"
-	"github.com/sudo-bmitch/version-bump/internal/lockfile"
 )
 
-var confBytes = []byte(`
-files:
-  "**/*.sh":
-    scans:
-      - test
-scans:
-  "test":
-    type: "regexp"
-    source: "test10"
-    args:
-      regexp: "^testVer=(?P<Version>\\d+)"
-sources:
-  "test10":
-    type: "custom"
-    args:
-      cmd: "echo 10"
-`)
+func getVer10(curVer string, args map[string]string) (string, error) {
+	return "10", nil
+}
 
 func TestRegexp(t *testing.T) {
-	conf, err := config.LoadReader(bytes.NewReader(confBytes))
-	if err != nil {
-		t.Errorf("failed to load config: %v", err)
-		return
-	}
-	a := action.New(&action.Opts{
-		Action: action.ActionUpdate,
-		DryRun: false,
-		Locks:  lockfile.New(),
-	}, *conf)
+	ctx := context.Background()
 
 	tests := []struct {
 		name     string
@@ -51,9 +26,8 @@ func TestRegexp(t *testing.T) {
 		{
 			name: "Replace version",
 			confScan: config.Scan{
-				Name:   "test",
-				Type:   "regexp",
-				Source: "test10",
+				Name: "test",
+				Type: "regexp",
 				Args: map[string]string{
 					"regexp": "^testVer=(?P<Version>\\d+)",
 				},
@@ -66,8 +40,9 @@ func TestRegexp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rdr := bytes.NewReader(tt.in)
-			scan, err := newREScan(tt.confScan, io.NopCloser(rdr), a, "test")
+			r := bytes.NewReader(tt.in)
+			outBuf := bytes.NewBuffer([]byte{})
+			err := runREScan(ctx, tt.confScan, "test", r, outBuf, getVer10)
 			if tt.expError != nil {
 				if err == nil {
 					t.Errorf("newREScan did not fail")
@@ -79,11 +54,7 @@ func TestRegexp(t *testing.T) {
 				t.Errorf("newREScan failed: %v", err)
 				return
 			}
-			out, err := io.ReadAll(scan)
-			if err != nil {
-				t.Errorf("failed to read from scan: %v", err)
-				return
-			}
+			out := outBuf.Bytes()
 			if !bytes.Equal(tt.expOut, out) {
 				t.Errorf("result does not match:\n--- expected ---\n%s\n--- received ---\n%s", tt.expOut, out)
 			}
