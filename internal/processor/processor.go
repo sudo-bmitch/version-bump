@@ -90,10 +90,12 @@ func (p *processor) getVer(curVer string, matchArgs map[string]string) (string, 
 	if err != nil {
 		return curVer, fmt.Errorf("failed to template args: processor=%v, %v", *p, err)
 	}
+	tdp.processor.Source = src
 	key, err := template.String(p.Processor.Key, tdp)
 	if err != nil {
 		return curVer, fmt.Errorf("failed to template key: processor=%v, %v", *p, err)
 	}
+	tdp.Processor.Key = key
 	// TODO: handle different options for source (read from current lock or real source)
 	results, err := source.Get(src)
 	if err != nil {

@@ -182,8 +182,8 @@ func (cli *cliOpts) runAction(cmd *cobra.Command, args []string) error {
 	}
 	// display changes
 	for _, change := range changes {
-		fmt.Printf("Version changed: filename=%s, scan=%s, source=%s, key=%s, old=%s, new=%s\n",
-			change.Filename, change.Scan, change.Source, change.Key, change.Orig, change.New)
+		fmt.Printf("Version changed: filename=%s, processor=%s, key=%s, old=%s, new=%s\n",
+			change.Filename, change.Processor, change.Key, change.Orig, change.New)
 	}
 
 	if origDir != "." {
