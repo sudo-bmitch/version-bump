@@ -90,6 +90,7 @@ func LoadReader(rdr io.Reader) (*Locks, error) {
 }
 
 func LoadFile(filename string) (*Locks, error) {
+	//#nosec G304 file to read is controlled by user running the command
 	fh, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open lock file %s: %w", filename, err)
@@ -137,6 +138,7 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 	}
 	// write to a temp file
 	dir := filepath.Dir(filename)
+	//#nosec G301 path to create is controlled by user running the command
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create %s: %w", dir, err)
 	}
@@ -146,14 +148,14 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 	}
 	tmpName := tmp.Name()
 	err = l.SaveWriter(tmp, used)
-	tmp.Close()
-	defer func() {
-		if err != nil {
-			os.Remove(tmpName)
-		}
-	}()
 	if err != nil {
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("failed to save lock file %s: %w", tmpName, err)
+	}
+	err = tmp.Close()
+	if err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("failed to close lock file %s: %w", tmpName, err)
 	}
 	// update permissions to match existing file or 0644
 	mode := os.FileMode(0644)
@@ -162,10 +164,12 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 		mode = stat.Mode()
 	}
 	if err := os.Chmod(tmpName, mode); err != nil {
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("failed to change permission on lockfile %s: %w", tmpName, err)
 	}
 	// move temp file to target filename
 	if err := os.Rename(tmpName, filename); err != nil {
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("failed to replace lockfile %s: %w", filename, err)
 	}
 	return nil

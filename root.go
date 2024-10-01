@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
 	"github.com/sudo-bmitch/version-bump/internal/config"
 	"github.com/sudo-bmitch/version-bump/internal/filesearch"
 	"github.com/sudo-bmitch/version-bump/internal/lockfile"
@@ -265,6 +266,7 @@ type procFileChan struct {
 
 func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey string, conf *config.Config, action string, locks *lockfile.Locks) ([]*processor.Change, error) {
 	// TODO: for large files, write to a tmp file instead of using an in-memory buffer
+	//#nosec G304 file to read is controlled by user running the command
 	origBytes, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -291,6 +293,7 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 			wErr := w.Close()
 			var err error
 			if pErr != nil {
+				pErr = fmt.Errorf("failed to process %s with processor %s: %w", filename, procName, pErr)
 				if rErr != nil || wErr != nil {
 					err = errors.Join(pErr, rErr, wErr)
 				} else {
@@ -341,14 +344,14 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 		}
 		tmpName := tmp.Name()
 		_, err = tmp.Write(finalBytes)
-		tmp.Close()
-		defer func() {
-			if err != nil {
-				os.Remove(tmpName)
-			}
-		}()
 		if err != nil {
+			_ = os.Remove(tmpName)
 			return nil, fmt.Errorf("failed to write temp file %s: %w", tmpName, err)
+		}
+		err = tmp.Close()
+		if err != nil {
+			_ = os.Remove(tmpName)
+			return nil, fmt.Errorf("failed to close temp file %s: %w", tmpName, err)
 		}
 		// update permissions to match existing file or 0644
 		mode := os.FileMode(0644)
@@ -357,10 +360,12 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 			mode = stat.Mode()
 		}
 		if err := os.Chmod(tmpName, mode); err != nil {
+			_ = os.Remove(tmpName)
 			return nil, fmt.Errorf("failed to adjust permissions on file %s: %w", filename, err)
 		}
 		// move temp file to target filename
 		if err := os.Rename(tmpName, filename); err != nil {
+			_ = os.Remove(tmpName)
 			return nil, fmt.Errorf("failed to rename file %s to %s: %w", tmpName, filename, err)
 		}
 	}

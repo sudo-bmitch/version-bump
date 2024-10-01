@@ -17,6 +17,7 @@ func newCustom(src config.Source) (Results, error) {
 	if _, ok := src.Args[customCmd]; !ok {
 		return Results{}, fmt.Errorf("custom source requires a cmd arg")
 	}
+	//#nosec G204 command to run is controlled by user running the command
 	out, err := exec.Command("/bin/sh", "-c", src.Args[customCmd]).Output()
 	if err != nil {
 		return Results{}, fmt.Errorf("failed running %s: %w", src.Args[customCmd], err)
