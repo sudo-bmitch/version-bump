@@ -19,6 +19,7 @@ GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 MARKDOWN_LINT_VER?=v0.14.0
 GOMAJOR_VER?=v0.14.0
+GOSEC_VER?=v2.21.4
 GO_VULNCHECK_VER?=v1.1.3
 OSV_SCANNER_VER?=v1.8.5
 STATICCHECK_VER?=v0.5.1
@@ -28,11 +29,15 @@ STATICCHECK_VER?=v0.5.1
 .FORCE:
 
 .PHONY: all
-all: fmt vet test lint binaries ## Full build of Go binaries (including fmt, vet, test, and lint)
+all: fmt goimports vet test lint binaries ## Full build of Go binaries (including fmt, vet, test, and lint)
 
 .PHONY: fmt
 fmt: ## go fmt
 	go fmt ./...
+
+.PHONY: goimports
+goimports: $(GOPATH)/bin/goimports
+	$(GOPATH)/bin/goimports -w -format-only -local github.com/sudo-bmitch/version-bump .
 
 .PHONY: vet
 vet: ## go vet
@@ -40,14 +45,26 @@ vet: ## go vet
 
 .PHONY: test
 test: ## go test
-	go test -cover ./...
+	go test -cover -race ./...
 
 .PHONY: lint
-lint: lint-go lint-md ## Run all linting
+lint: lint-go lint-goimports lint-md lint-gosec ## Run all linting
 
 .PHONY: lint-go
 lint-go: $(GOPATH)/bin/staticcheck .FORCE ## Run linting for Go
 	$(GOPATH)/bin/staticcheck -checks all ./...
+
+.PHONY: lint-goimports
+lint-goimports: $(GOPATH)/bin/goimports
+	@if [ -n "$$($(GOPATH)/bin/goimports -l -format-only -local github.com/sudo-bmitch/version-bump .)" ]; then \
+		echo $(GOPATH)/bin/goimports -d -format-only -local github.com/sudo-bmitch/version-bump .; \
+		$(GOPATH)/bin/goimports -d -format-only -local github.com/sudo-bmitch/version-bump .; \
+		exit 1; \
+	fi
+
+.PHONY: lint-gosec
+lint-gosec: $(GOPATH)/bin/gosec .FORCE ## Run gosec
+	$(GOPATH)/bin/gosec -terse ./...
 
 .PHONY: lint-md
 lint-md: .FORCE ## Run linting for markdown
@@ -132,15 +149,20 @@ util-golang-update: ## Update golang dependencies
 	go mod tidy
 	[ ! -d vendor ] || go mod vendor
 
-$(GOPATH)/bin/staticcheck: .FORCE
-	@[ -f $(GOPATH)/bin/staticcheck ] \
-	&& [ "$$($(GOPATH)/bin/staticcheck -version | cut -f 3 -d ' ' | tr -d '()')" = "$(STATICCHECK_VER)" ] \
-	|| go install "honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VER)"
+$(GOPATH)/bin/goimports: .FORCE
+	@[ -f "$(GOPATH)/bin/goimports" ] \
+	||	go install golang.org/x/tools/cmd/goimports@latest
 
 $(GOPATH)/bin/gomajor: .FORCE
 	@[ -f "$(GOPATH)/bin/gomajor" ] \
 	&& [ "$$($(GOPATH)/bin/gomajor version | grep '^version' | cut -f 2 -d ' ')" = "$(GOMAJOR_VER)" ] \
 	|| go install github.com/icholy/gomajor@$(GOMAJOR_VER)
+
+$(GOPATH)/bin/gosec: .FORCE
+	@[ -f $(GOPATH)/bin/gosec ] \
+	&& [ "$$($(GOPATH)/bin/gosec -version | grep '^Version' | cut -f 2 -d ' ')" = "$(GOSEC_VER)" ] \
+	|| go install -ldflags '-X main.Version=$(GOSEC_VER) -X main.GitTag=$(GOSEC_VER)' \
+	    github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VER)
 
 $(GOPATH)/bin/govulncheck: .FORCE
 	@[ $$(go version -m $(GOPATH)/bin/govulncheck | \
@@ -151,6 +173,11 @@ $(GOPATH)/bin/osv-scanner: .FORCE
 	@[ -f $(GOPATH)/bin/osv-scanner ] \
 	&& [ "$$(osv-scanner --version | awk -F ': ' '{ if ($$1 == "osv-scanner version") { printf "%s\n", $$2 } }')" = "$(OSV_SCANNER_VER)" ] \
 	|| CGO_ENABLED=0 go install "github.com/google/osv-scanner/cmd/osv-scanner@$(OSV_SCANNER_VER)"
+
+$(GOPATH)/bin/staticcheck: .FORCE
+	@[ -f $(GOPATH)/bin/staticcheck ] \
+	&& [ "$$($(GOPATH)/bin/staticcheck -version | cut -f 3 -d ' ' | tr -d '()')" = "$(STATICCHECK_VER)" ] \
+	|| go install "honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VER)"
 
 help: # Display help
 	@awk -F ':|##' '/^[^\t].+?:.*?##/ { printf "\033[36m%-30s\033[0m %s\n", $$1, $$NF }' $(MAKEFILE_LIST)

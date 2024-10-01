@@ -61,7 +61,7 @@ type Filter struct {
 type Sort struct {
 	Method string `yaml:"method" json:"method"`
 	Asc    bool   `yaml:"asc" json:"asc"`
-	Offset uint   `yaml:"offset" json:"offset"`
+	Offset int    `yaml:"offset" json:"offset"`
 }
 
 // Config contains the configuration options for the project
@@ -138,6 +138,7 @@ func LoadReader(r io.Reader) (*Config, error) {
 
 // LoadFile imports a config from a filename
 func LoadFile(filename string) (*Config, error) {
+	//#nosec G304 file to read is controlled by user running the command
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err

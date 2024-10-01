@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/Masterminds/semver/v3"
+
 	"github.com/sudo-bmitch/version-bump/internal/config"
 	"github.com/sudo-bmitch/version-bump/internal/lockfile"
 	"github.com/sudo-bmitch/version-bump/internal/scan"
@@ -206,7 +207,10 @@ func (p *processor) resultsToVer(results source.Results, tdp tmplDataProcess) (s
 		}
 	}
 	// select the requested offset and template
-	if len(keys) <= int(p.Processor.Sort.Offset) {
+	if p.Processor.Sort.Offset < 0 {
+		return "", fmt.Errorf("offset cannot be negative")
+	}
+	if len(keys) <= p.Processor.Sort.Offset {
 		return "", fmt.Errorf("requested offset is too large, %d matching versions found: %v", len(keys), keys)
 	}
 	tdr := tmplDataResults{

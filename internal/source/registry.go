@@ -6,6 +6,7 @@ import (
 
 	"github.com/regclient/regclient"
 	"github.com/regclient/regclient/types/ref"
+
 	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
