@@ -140,6 +140,47 @@ func TestSource(t *testing.T) {
 			exactMatch: true,
 		},
 		{
+			name: "registry tags cached",
+			conf: config.Source{
+				Name: "registry tags",
+				Type: "registry",
+				Args: map[string]string{
+					// TODO: switch to version-bump repo after it has enough tags
+					"repo": "ghcr.io/regclient/regctl",
+					"type": "tag",
+				},
+			},
+			expect: Results{
+				VerMap: map[string]string{
+					"v0.4.0": "v0.4.0",
+					"v0.4.1": "v0.4.1",
+					"v0.4.2": "v0.4.2",
+					"v0.4.3": "v0.4.3",
+					"v0.4.4": "v0.4.4",
+					"v0.4.5": "v0.4.5",
+				},
+			},
+			exactMatch: false, // only a partial list of expected results
+		},
+		{
+			name: "registry digest cached",
+			conf: config.Source{
+				Name: "registry digest",
+				Type: "registry",
+				Args: map[string]string{
+					// TODO: switch to version-bump repo after it has enough tags
+					"image": "ghcr.io/regclient/regctl:v0.4.3",
+					"type":  "digest",
+				},
+			},
+			expect: Results{
+				VerMap: map[string]string{
+					"sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138": "sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138",
+				},
+			},
+			exactMatch: true,
+		},
+		{
 			name: "github release version",
 			conf: config.Source{
 				Name: "github release",
