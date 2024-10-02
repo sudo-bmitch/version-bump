@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/regclient/regclient"
 	"github.com/regclient/regclient/types/ref"
@@ -10,35 +11,45 @@ import (
 	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
-type registry struct {
-	rc *regclient.RegClient
+var registry struct {
+	once        sync.Once
+	rc          *regclient.RegClient
+	mu          sync.Mutex // mutex for cache access
+	cacheTags   map[string]*Results
+	cacheDigest map[string]*Results
 }
 
 func newRegistry(conf config.Source) (Results, error) {
-	// TODO: cache regclient instance to only create it once
-	rc := regclient.New(
-		regclient.WithDockerCreds(),
-	)
-	r := registry{
-		rc: rc,
-	}
+	registry.once.Do(func() {
+		registry.rc = regclient.New(
+			regclient.WithDockerCreds(),
+			regclient.WithUserAgent("sudo-bmitch/version-bump"),
+		)
+		registry.cacheDigest = map[string]*Results{}
+		registry.cacheTags = map[string]*Results{}
+	})
 	if conf.Args["type"] == "tag" {
-		return r.getTag(conf)
+		return regGetTag(conf)
 	}
 	// default request is for a digest
-	return r.getDigest(conf)
+	return regGetDigest(conf)
 }
 
-func (r registry) getTag(conf config.Source) (Results, error) {
+func regGetTag(conf config.Source) (Results, error) {
 	repo, ok := conf.Args["repo"]
 	if !ok {
 		return Results{}, fmt.Errorf("repo not defined")
+	}
+	registry.mu.Lock()
+	defer registry.mu.Unlock()
+	if res, ok := registry.cacheTags[repo]; ok {
+		return *res, nil
 	}
 	repoRef, err := ref.New(repo)
 	if err != nil {
 		return Results{}, fmt.Errorf("failed to parse repo: %w", err)
 	}
-	tags, err := r.rc.TagList(context.Background(), repoRef)
+	tags, err := registry.rc.TagList(context.Background(), repoRef)
 	if err != nil {
 		return Results{}, fmt.Errorf("failed to list tags: %w", err)
 	}
@@ -51,19 +62,25 @@ func (r registry) getTag(conf config.Source) (Results, error) {
 	if len(res.VerMap) == 0 {
 		return Results{}, fmt.Errorf("no matching tags found")
 	}
+	registry.cacheTags[repo] = &res
 	return res, nil
 }
 
-func (r registry) getDigest(conf config.Source) (Results, error) {
+func regGetDigest(conf config.Source) (Results, error) {
 	image, ok := conf.Args["image"]
 	if !ok {
 		return Results{}, fmt.Errorf("image not defined")
+	}
+	registry.mu.Lock()
+	defer registry.mu.Unlock()
+	if res, ok := registry.cacheDigest[image]; ok {
+		return *res, nil
 	}
 	imageRef, err := ref.New(image)
 	if err != nil {
 		return Results{}, fmt.Errorf("failed to parse image: %w", err)
 	}
-	m, err := r.rc.ManifestHead(context.Background(), imageRef, regclient.WithManifestRequireDigest())
+	m, err := registry.rc.ManifestHead(context.Background(), imageRef, regclient.WithManifestRequireDigest())
 	if err != nil {
 		return Results{}, fmt.Errorf("failed to query image: %w", err)
 	}
@@ -73,5 +90,6 @@ func (r registry) getDigest(conf config.Source) (Results, error) {
 			dig: dig,
 		},
 	}
+	registry.cacheDigest[image] = &res
 	return res, nil
 }
