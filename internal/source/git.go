@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
@@ -11,13 +12,28 @@ import (
 	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
-const ()
+const (
+	gitArgURL  = "url"
+	gitArgType = "type"
+	gitTypeTag = "tag"
+)
+
+var gitState struct {
+	once         sync.Once
+	mu           sync.Mutex // mutex for cache access
+	cacheTags    map[string]*Results
+	cacheCommits map[string]*Results
+}
 
 func newGit(conf config.Source) (Results, error) {
-	if _, ok := conf.Args["url"]; !ok {
+	if _, ok := conf.Args[gitArgURL]; !ok {
 		return Results{}, fmt.Errorf("url argument is required")
 	}
-	if conf.Args["type"] == "tag" {
+	gitState.once.Do(func() {
+		gitState.cacheCommits = map[string]*Results{}
+		gitState.cacheTags = map[string]*Results{}
+	})
+	if conf.Args[gitArgType] == gitTypeTag {
 		return gitTag(conf)
 	}
 	return gitCommit(conf)
@@ -26,7 +42,7 @@ func newGit(conf config.Source) (Results, error) {
 func gitRefs(conf config.Source) ([]*plumbing.Reference, error) {
 	rem := git.NewRemote(memory.NewStorage(), &gitConfig.RemoteConfig{
 		Name: "origin",
-		URLs: []string{conf.Args["url"]},
+		URLs: []string{conf.Args[gitArgURL]},
 	})
 	return rem.List(&git.ListOptions{
 		PeelingOption: git.AppendPeeled,
@@ -34,6 +50,11 @@ func gitRefs(conf config.Source) ([]*plumbing.Reference, error) {
 }
 
 func gitCommit(conf config.Source) (Results, error) {
+	gitState.mu.Lock()
+	defer gitState.mu.Unlock()
+	if r, ok := gitState.cacheCommits[conf.Args[gitArgURL]]; ok {
+		return *r, nil
+	}
 	refs, err := gitRefs(conf)
 	if err != nil {
 		return Results{}, err
@@ -53,12 +74,18 @@ func gitCommit(conf config.Source) (Results, error) {
 		}
 	}
 	if len(res.VerMap) == 0 {
-		return Results{}, fmt.Errorf("no tagged commits found on %s", conf.Args["url"])
+		return Results{}, fmt.Errorf("no tagged commits found on %s", conf.Args[gitArgURL])
 	}
+	gitState.cacheCommits[conf.Args[gitArgURL]] = &res
 	return res, nil
 }
 
 func gitTag(conf config.Source) (Results, error) {
+	gitState.mu.Lock()
+	defer gitState.mu.Unlock()
+	if r, ok := gitState.cacheTags[conf.Args[gitArgURL]]; ok {
+		return *r, nil
+	}
 	refs, err := gitRefs(conf)
 	if err != nil {
 		return Results{}, err
@@ -71,7 +98,8 @@ func gitTag(conf config.Source) (Results, error) {
 		res.VerMap[ref.Name().Short()] = ref.Name().Short()
 	}
 	if len(res.VerMap) == 0 {
-		return Results{}, fmt.Errorf("no tagged commits found on %s", conf.Args["url"])
+		return Results{}, fmt.Errorf("no tagged commits found on %s", conf.Args[gitArgURL])
 	}
+	gitState.cacheTags[conf.Args[gitArgURL]] = &res
 	return res, nil
 }

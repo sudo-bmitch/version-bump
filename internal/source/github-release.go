@@ -14,42 +14,47 @@ import (
 	"github.com/sudo-bmitch/version-bump/internal/config"
 )
 
-const ()
+const (
+	ghrArgType            = "type"
+	ghrArgRepo            = "repo"
+	ghrArgArtifact        = "artifact"
+	ghrArgAllowDraft      = "allowDraft"
+	ghrArgAllowPrerelease = "allowPrerelease"
+)
 
-type ghRelease struct {
-	httpClient *http.Client
+var ghrState struct {
+	once           sync.Once
+	httpClient     *http.Client
+	mu             sync.Mutex // mutex for cache access
+	cacheReleases  map[string][]*GHRelease
+	cacheArtifacts map[string]*Results
+	cacheNames     map[string]*Results
 }
 
 func newGHRelease(conf config.Source) (Results, error) {
-	g := ghRelease{httpClient: http.DefaultClient}
-
-	releases, err := g.getReleaseList(conf)
-	if err != nil {
-		return Results{}, err
+	if _, ok := conf.Args[ghrArgRepo]; !ok {
+		return Results{}, fmt.Errorf("repo argument is required")
 	}
-	if conf.Args["type"] == "artifact" {
-		return g.getArtifact(conf, releases)
+	ghrState.once.Do(func() {
+		ghrState.httpClient = http.DefaultClient
+		ghrState.cacheReleases = map[string][]*GHRelease{}
+		ghrState.cacheArtifacts = map[string]*Results{}
+		ghrState.cacheNames = map[string]*Results{}
+	})
+	if conf.Args[ghrArgType] == "artifact" {
+		return ghrArtifact(conf)
 	}
-	return g.getReleaseName(conf, releases)
+	return ghrReleaseName(conf)
 }
 
-var (
-	ghCache     map[string][]*GHRelease = map[string][]*GHRelease{}
-	ghCacheLock sync.Mutex
-)
-
-func (g ghRelease) getReleaseList(conf config.Source) ([]*GHRelease, error) {
-	if _, ok := conf.Args["repo"]; !ok {
-		return nil, fmt.Errorf("repo argument is required")
-	}
-	if releases, ok := ghCache[conf.Args["repo"]]; ok {
+func ghrReleaseList(conf config.Source) ([]*GHRelease, error) {
+	repo := conf.Args[ghrArgRepo]
+	if releases, ok := ghrState.cacheReleases[repo]; ok {
 		return releases, nil
 	}
-	ghCacheLock.Lock()
-	defer ghCacheLock.Unlock()
-	u, err := url.Parse("https://api.github.com/repos/" + conf.Args["repo"] + "/releases")
+	u, err := url.Parse("https://api.github.com/repos/" + repo + "/releases")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse api url, check repo syntax (%s should be org/proj): %w", conf.Args["repo"], err)
+		return nil, fmt.Errorf("failed to parse api url, check repo syntax (%s should be org/proj): %w", repo, err)
 	}
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -63,7 +68,7 @@ func (g ghRelease) getReleaseList(conf config.Source) ([]*GHRelease, error) {
 	if token != "" {
 		req.SetBasicAuth("git", token)
 	}
-	resp, err := g.httpClient.Do(req)
+	resp, err := ghrState.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call releases API: %w", err)
 	}
@@ -78,29 +83,39 @@ func (g ghRelease) getReleaseList(conf config.Source) ([]*GHRelease, error) {
 		return nil, fmt.Errorf("failed to decode release API response: %w", err)
 	}
 	// cache result for future requests
-	ghCache[conf.Args["repo"]] = releases
+	ghrState.cacheReleases[repo] = releases
 	return releases, nil
 }
 
-func (g ghRelease) getReleaseName(conf config.Source, releases []*GHRelease) (Results, error) {
+func ghrReleaseName(conf config.Source) (Results, error) {
 	var err error
-	res := Results{
-		VerMap:  map[string]string{},
-		VerMeta: map[string]interface{}{},
-	}
 	allowDraft := false
-	if val, ok := conf.Args["allowDraft"]; ok {
+	if val, ok := conf.Args[ghrArgAllowDraft]; ok {
 		allowDraft, err = strconv.ParseBool(val)
 		if err != nil {
 			return Results{}, fmt.Errorf("allowDraft must be a bool value: \"%s\": %w", val, err)
 		}
 	}
 	allowPrerelease := false
-	if val, ok := conf.Args["allowPrerelease"]; ok {
+	if val, ok := conf.Args[ghrArgAllowPrerelease]; ok {
 		allowPrerelease, err = strconv.ParseBool(val)
 		if err != nil {
 			return Results{}, fmt.Errorf("allowPrerelease must be a bool value: \"%s\": %w", val, err)
 		}
+	}
+	key := fmt.Sprintf("%s:%t:%t", conf.Args[ghrArgRepo], allowDraft, allowPrerelease)
+	ghrState.mu.Lock()
+	defer ghrState.mu.Unlock()
+	if r, ok := ghrState.cacheNames[key]; ok {
+		return *r, nil
+	}
+	releases, err := ghrReleaseList(conf)
+	if err != nil {
+		return Results{}, err
+	}
+	res := Results{
+		VerMap:  map[string]string{},
+		VerMeta: map[string]interface{}{},
 	}
 	for _, r := range releases {
 		r := r
@@ -113,32 +128,43 @@ func (g ghRelease) getReleaseName(conf config.Source, releases []*GHRelease) (Re
 		res.VerMap[r.TagName] = r.TagName
 		res.VerMeta[r.TagName] = r
 	}
+	ghrState.cacheNames[key] = &res
 	return res, nil
 }
 
-func (g ghRelease) getArtifact(conf config.Source, releases []*GHRelease) (Results, error) {
+func ghrArtifact(conf config.Source) (Results, error) {
 	var err error
-	res := Results{
-		VerMap:  map[string]string{},
-		VerMeta: map[string]interface{}{},
-	}
-	artifactName, ok := conf.Args["artifact"]
-	if !ok {
-		return Results{}, fmt.Errorf("missing arg \"artifact\"")
-	}
 	allowDraft := false
-	if val, ok := conf.Args["allowDraft"]; ok {
+	if val, ok := conf.Args[ghrArgAllowDraft]; ok {
 		allowDraft, err = strconv.ParseBool(val)
 		if err != nil {
 			return Results{}, fmt.Errorf("allowDraft must be a bool value: \"%s\": %w", val, err)
 		}
 	}
 	allowPrerelease := false
-	if val, ok := conf.Args["allowPrerelease"]; ok {
+	if val, ok := conf.Args[ghrArgAllowPrerelease]; ok {
 		allowPrerelease, err = strconv.ParseBool(val)
 		if err != nil {
 			return Results{}, fmt.Errorf("allowPrerelease must be a bool value: \"%s\": %w", val, err)
 		}
+	}
+	artifactName, ok := conf.Args["artifact"]
+	if !ok {
+		return Results{}, fmt.Errorf("missing arg \"artifact\"")
+	}
+	key := fmt.Sprintf("%s:%s:%t:%t", conf.Args[ghrArgRepo], artifactName, allowDraft, allowPrerelease)
+	ghrState.mu.Lock()
+	defer ghrState.mu.Unlock()
+	if r, ok := ghrState.cacheArtifacts[key]; ok {
+		return *r, nil
+	}
+	releases, err := ghrReleaseList(conf)
+	if err != nil {
+		return Results{}, err
+	}
+	res := Results{
+		VerMap:  map[string]string{},
+		VerMeta: map[string]interface{}{},
 	}
 	for _, r := range releases {
 		r := r
@@ -160,6 +186,7 @@ func (g ghRelease) getArtifact(conf config.Source, releases []*GHRelease) (Resul
 	if len(res.VerMap) <= 0 {
 		return Results{}, fmt.Errorf("no releases found with artifact \"%s\"", artifactName)
 	}
+	ghrState.cacheArtifacts[key] = &res
 	return res, nil
 }
 
