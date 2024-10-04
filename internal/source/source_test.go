@@ -15,6 +15,7 @@ func TestSource(t *testing.T) {
 		err        error
 		expect     Results
 		exactMatch bool
+		testCache  bool
 	}{
 		{
 			name: "unknown type",
@@ -76,6 +77,7 @@ func TestSource(t *testing.T) {
 				},
 			},
 			exactMatch: false, // only a partial list of expected results
+			testCache:  true,
 		},
 		{
 			name: "git ref",
@@ -97,6 +99,7 @@ func TestSource(t *testing.T) {
 				},
 			},
 			exactMatch: false, // only a partial list of expected results
+			testCache:  true,
 		},
 		{
 			name: "registry tags",
@@ -120,6 +123,7 @@ func TestSource(t *testing.T) {
 				},
 			},
 			exactMatch: false, // only a partial list of expected results
+			testCache:  true,
 		},
 		{
 			name: "registry digest",
@@ -138,47 +142,7 @@ func TestSource(t *testing.T) {
 				},
 			},
 			exactMatch: true,
-		},
-		{
-			name: "registry tags cached",
-			conf: config.Source{
-				Name: "registry tags",
-				Type: "registry",
-				Args: map[string]string{
-					// TODO: switch to version-bump repo after it has enough tags
-					"repo": "ghcr.io/regclient/regctl",
-					"type": "tag",
-				},
-			},
-			expect: Results{
-				VerMap: map[string]string{
-					"v0.4.0": "v0.4.0",
-					"v0.4.1": "v0.4.1",
-					"v0.4.2": "v0.4.2",
-					"v0.4.3": "v0.4.3",
-					"v0.4.4": "v0.4.4",
-					"v0.4.5": "v0.4.5",
-				},
-			},
-			exactMatch: false, // only a partial list of expected results
-		},
-		{
-			name: "registry digest cached",
-			conf: config.Source{
-				Name: "registry digest",
-				Type: "registry",
-				Args: map[string]string{
-					// TODO: switch to version-bump repo after it has enough tags
-					"image": "ghcr.io/regclient/regctl:v0.4.3",
-					"type":  "digest",
-				},
-			},
-			expect: Results{
-				VerMap: map[string]string{
-					"sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138": "sha256:b76626b3eb7e2380183b29f550bea56dea67685907d4ec61b56ff770ae2d7138",
-				},
-			},
-			exactMatch: true,
+			testCache:  true,
 		},
 		{
 			name: "github release version",
@@ -201,6 +165,7 @@ func TestSource(t *testing.T) {
 				},
 			},
 			exactMatch: false, // only a partial list of expected results
+			testCache:  true,
 		},
 		{
 			name: "github release artifact",
@@ -222,6 +187,7 @@ func TestSource(t *testing.T) {
 				},
 			},
 			exactMatch: false, // only a partial list of expected results
+			testCache:  true,
 		},
 	}
 	for _, tt := range tests {
@@ -261,6 +227,38 @@ func TestSource(t *testing.T) {
 			}
 			if tt.exactMatch && len(tt.expect.VerMeta) != len(results.VerMeta) {
 				t.Errorf("results.VerMeta is not an exact match: %v != %v", tt.expect.VerMeta, results.VerMeta)
+			}
+			// rerun the tests for cached searches
+			if tt.testCache {
+				resultsCache, err := Get(tt.conf)
+				if err != nil {
+					t.Errorf("get cached source failed: %v", err)
+					return
+				}
+				if tt.expect.VerMap != nil && resultsCache.VerMap == nil {
+					t.Errorf("resultsCache.VerMap is nil")
+				} else {
+					for k, v := range tt.expect.VerMap {
+						if resultsCache.VerMap[k] != v {
+							t.Errorf("resultsCache.VerMap[%s] expect %s, received %s", k, v, resultsCache.VerMap[k])
+						}
+					}
+				}
+				if tt.exactMatch && len(tt.expect.VerMap) != len(resultsCache.VerMap) {
+					t.Errorf("resultsCache.VerMap is not an exact match: %v != %v", tt.expect.VerMap, resultsCache.VerMap)
+				}
+				if tt.expect.VerMeta != nil && resultsCache.VerMeta == nil {
+					t.Errorf("resultsCache.VerMeta is nil")
+				} else {
+					for k, v := range tt.expect.VerMeta {
+						if resultsCache.VerMeta[k] != v {
+							t.Errorf("resultsCache.VerMeta[%s] expect %s, received %s", k, v, resultsCache.VerMeta[k])
+						}
+					}
+				}
+				if tt.exactMatch && len(tt.expect.VerMeta) != len(resultsCache.VerMeta) {
+					t.Errorf("resultsCache.VerMeta is not an exact match: %v != %v", tt.expect.VerMeta, resultsCache.VerMeta)
+				}
 			}
 		})
 	}
