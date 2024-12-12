@@ -17,7 +17,7 @@ DOCKERFILE_EXT?=$(shell if docker build --help 2>/dev/null | grep -q -- '--progr
 DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
-MARKDOWN_LINT_VER?=v0.15.0
+MARKDOWN_LINT_VER?=v0.16.0
 GOMAJOR_VER?=v0.14.0
 GOSEC_VER?=v2.21.4
 GO_VULNCHECK_VER?=v1.1.3
@@ -146,6 +146,12 @@ util-golang-major: $(GOPATH)/bin/gomajor ## check for major dependency updates
 .PHONY: util-golang-update
 util-golang-update: ## Update golang dependencies
 	go get -u -t ./...
+	go mod tidy
+	[ ! -d vendor ] || go mod vendor
+
+.PHONY: util-golang-update-direct
+util-golang-update-direct: ## Update direct go dependencies
+	go get $$(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all)
 	go mod tidy
 	[ ! -d vendor ] || go mod vendor
 
