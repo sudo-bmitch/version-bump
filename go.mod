@@ -1,6 +1,6 @@
 module github.com/sudo-bmitch/version-bump
 
-go 1.21
+go 1.22
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
