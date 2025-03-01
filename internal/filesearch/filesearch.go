@@ -212,7 +212,7 @@ func newPattern(expr string) (*pattern, error) {
 	reFullStr := "^" + strings.Join(reParts, "") + "$"
 	// partial match makes every successive path entry optional
 	rePartStr := "^" + strings.Join(reParts, "(?:")
-	for i := 0; i < len(reParts)-1; i++ {
+	for range len(reParts) - 1 {
 		rePartStr += ")?"
 	}
 	rePartStr += "$"
