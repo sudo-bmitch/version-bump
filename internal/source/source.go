@@ -18,8 +18,8 @@ var sourceTypes map[string]func(config.Source) (Results, error) = map[string]fun
 
 // Results are returned by a source for a given request.
 type Results struct {
-	VerMap  map[string]string      // list of keys and values for a given source, e.g. tag=digest
-	VerMeta map[string]interface{} // additional metadata specific to each source, e.g. GitHub release metadata
+	VerMap  map[string]string // list of keys and values for a given source, e.g. tag=digest
+	VerMeta map[string]any    // additional metadata specific to each source, e.g. GitHub release metadata
 }
 
 func Get(src config.Source) (Results, error) {

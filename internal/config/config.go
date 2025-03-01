@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -151,9 +152,9 @@ func (p Processor) Clone() Processor {
 	return Processor{
 		Name:       p.Name,
 		Scan:       p.Scan,
-		ScanArgs:   mapStrStrClone(p.ScanArgs),
+		ScanArgs:   maps.Clone(p.ScanArgs),
 		Source:     p.Source,
-		SourceArgs: mapStrStrClone(p.SourceArgs),
+		SourceArgs: maps.Clone(p.SourceArgs),
 		Key:        p.Key,
 		Filter:     p.Filter,
 		Sort:       p.Sort,
@@ -180,7 +181,7 @@ func (s Scan) Clone() Scan {
 	return Scan{
 		Name: s.Name,
 		Type: s.Type,
-		Args: mapStrStrClone(s.Args),
+		Args: maps.Clone(s.Args),
 	}
 }
 
@@ -197,7 +198,7 @@ func (s Source) Clone() Source {
 	return Source{
 		Name: s.Name,
 		Type: s.Type,
-		Args: mapStrStrClone(s.Args),
+		Args: maps.Clone(s.Args),
 	}
 }
 
@@ -232,12 +233,4 @@ func eqStrMaps(a, b map[string]string) bool {
 		}
 	}
 	return true
-}
-
-func mapStrStrClone(s map[string]string) map[string]string {
-	c := map[string]string{}
-	for k, v := range s {
-		c[k] = v
-	}
-	return c
 }

@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -278,7 +279,7 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 	procResult := make(chan procFileChan)
 	for _, p := range conf.Files[fileKey].Processors {
 		// skip scans when CLI arg requests specific scans
-		if len(cli.processors) > 0 && !containsStr(cli.processors, p) {
+		if len(cli.processors) > 0 && !slices.Contains(cli.processors, p) {
 			continue
 		}
 		if _, ok := conf.Processors[p]; !ok {
@@ -323,7 +324,7 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 	// check results from goroutines
 	errs := []error{}
 	changes := []*processor.Change{}
-	for i := 0; i < procCount; i++ {
+	for range procCount {
 		curResult := <-procResult
 		if curResult.err != nil {
 			errs = append(errs, curResult.err)
@@ -370,15 +371,6 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 		}
 	}
 	return changes, nil
-}
-
-func containsStr(strList []string, str string) bool {
-	for _, cur := range strList {
-		if cur == str {
-			return true
-		}
-	}
-	return false
 }
 
 func flagChanged(cmd *cobra.Command, name string) bool {

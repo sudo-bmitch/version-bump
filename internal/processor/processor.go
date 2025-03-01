@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 	"sort"
 	"strconv"
@@ -247,18 +248,15 @@ type tmplDataResults struct {
 	Version string
 }
 
-func argsMerge(a, b map[string]string) map[string]string {
+func argsMerge(mList ...map[string]string) map[string]string {
 	r := map[string]string{}
-	for k, v := range a {
-		r[k] = v
-	}
-	for k, v := range b {
-		r[k] = v
+	for _, m := range mList {
+		maps.Copy(r, m)
 	}
 	return r
 }
 
-func templateArgs(args map[string]string, data interface{}) (map[string]string, error) {
+func templateArgs(args map[string]string, data any) (map[string]string, error) {
 	out := map[string]string{}
 	var err error
 	for k, in := range args {
