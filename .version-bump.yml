@@ -7,7 +7,6 @@ files:
       - docker-arg-go-digest
   ".github/workflows/*.yml":
     processors:
-      - gha-golang-matrix
       - gha-golang-release
       - gha-uses-vx
       - gha-uses-semver
@@ -81,16 +80,6 @@ processors:
     sourceArgs:
       image: "docker.io/library/golang:{{.ScanMatch.Tag}}"
 
-  gha-golang-matrix:
-    <<: *registry-tag-semver
-    key: "golang-matrix"
-    scanArgs:
-      regexp: '^\s*gover: (?P<Version>\[["0-9, \.]+\])\s*$'
-    sourceArgs:
-      repo: "docker.io/library/golang"
-    filter:
-      expr: '^v?\d+\.\d+$'
-    template: '["{{ index .VerMap ( index .VerList 2 ) }}", "{{ index .VerMap ( index .VerList 1 ) }}", "{{ index .VerMap ( index .VerList 0 ) }}"]'
   gha-golang-release:
     <<: *registry-tag-semver
     key: "golang-latest"
@@ -124,14 +113,13 @@ processors:
 
   go-mod-golang-release:
     <<: *registry-tag-semver
-    key: "golang-oldest"
+    key: "golang-latest"
     scanArgs:
       regexp: '^go (?P<Version>[0-9\.]+)\s*$'
     sourceArgs:
       repo: "docker.io/library/golang"
     filter:
       expr: '^\d+\.\d+$'
-    template: '{{ index .VerMap ( index .VerList 2 ) }}'
 
   makefile-gomajor:
     <<: *git-tag-semver

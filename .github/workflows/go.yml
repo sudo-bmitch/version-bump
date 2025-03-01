@@ -15,19 +15,16 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        gover: ["1.22", "1.23", "1.24"]
 
     env:
       RELEASE_GO_VER: "1.24"
 
     steps:
 
-    - name: "Set up Go ${{ matrix.gover }}"
+    - name: "Set up Go ${{ env.RELEASE_GO_VER }}"
       uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
       with:
-        go-version: "${{ matrix.gover }}"
+        go-version: "${{ env.RELEASE_GO_VER }}"
         check-latest: true
       id: go
 
@@ -50,7 +47,6 @@ jobs:
       run: make test
 
     - name: Linting
-      if: matrix.gover == env.RELEASE_GO_VER
       run: make lint
 
     - name: Build artifacts
@@ -58,7 +54,7 @@ jobs:
       run: make artifacts
 
     - name: Gather release details
-      if: startsWith( github.ref, 'refs/tags/v' ) && github.repository_owner == 'sudo-bmitch' && matrix.gover == env.RELEASE_GO_VER
+      if: startsWith( github.ref, 'refs/tags/v' ) && github.repository_owner == 'sudo-bmitch'
       id: release_details
       run: |
         VERSION=${GITHUB_REF#refs/tags/}
@@ -76,7 +72,7 @@ jobs:
         echo "release_notes=${RELEASE_NOTES}" >>$GITHUB_OUTPUT
 
     - name: Create release
-      if: steps.release_details.outputs.valid == 'true' && matrix.gover == env.RELEASE_GO_VER
+      if: steps.release_details.outputs.valid == 'true'
       id: release_create
       uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
       env:
@@ -95,8 +91,8 @@ jobs:
           ./artifacts/version-bump-windows-amd64.exe
 
     - name: Save artifacts
-      if: github.ref == 'refs/heads/main' && matrix.gover == env.RELEASE_GO_VER
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
         name: binaries
         path: ./artifacts/
