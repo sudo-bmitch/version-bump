@@ -5,9 +5,9 @@ go 1.24
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/go-git/go-git/v5 v5.16.2
+	github.com/goccy/go-yaml v1.18.0
 	github.com/regclient/regclient v0.8.3
 	github.com/spf13/cobra v1.9.1
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
