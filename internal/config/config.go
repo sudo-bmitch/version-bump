@@ -8,7 +8,7 @@ import (
 	"maps"
 	"os"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 // File defines a file to process for version bumps.
@@ -87,7 +87,7 @@ func New() *Config {
 // LoadReader imports a config from a reader.
 func LoadReader(r io.Reader) (*Config, error) {
 	c := New()
-	err := yaml.NewDecoder(r).Decode(c)
+	err := yaml.NewDecoder(r, yaml.AllowDuplicateMapKey()).Decode(c)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
