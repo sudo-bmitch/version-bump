@@ -19,7 +19,7 @@ GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 MARKDOWN_LINT_VER?=v0.18.1
 GOMAJOR_VER?=v0.14.0
-GOSEC_VER?=v2.22.7
+GOSEC_VER?=v2.22.8
 GO_VULNCHECK_VER?=v1.1.4
 OSV_SCANNER_VER?=v2.2.1
 STATICCHECK_VER?=v0.6.1
@@ -171,8 +171,9 @@ $(GOPATH)/bin/gosec: .FORCE
 	    github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VER)
 
 $(GOPATH)/bin/govulncheck: .FORCE
-	@[ $$(go version -m $(GOPATH)/bin/govulncheck | \
-		awk -F ' ' '{ if ($$1 == "mod" && $$2 == "golang.org/x/vuln") { printf "%s\n", $$3 } }') = "$(GO_VULNCHECK_VER)" ] \
+	@[ -f $(GOPATH)/bin/govulncheck ] \
+	&& [ "$$(go version -m $(GOPATH)/bin/govulncheck | \
+		awk -F ' ' '{ if ($$1 == "mod" && $$2 == "golang.org/x/vuln") { printf "%s\n", $$3 } }')" = "$(GO_VULNCHECK_VER)" ] \
 	|| CGO_ENABLED=0 go install "golang.org/x/vuln/cmd/govulncheck@$(GO_VULNCHECK_VER)"
 
 $(GOPATH)/bin/osv-scanner: .FORCE
