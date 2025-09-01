@@ -21,9 +21,9 @@
 {"name":"gha-uses-semver","key":"https://github.com/softprops/action-gh-release.git","version":"v2.3.2"}
 {"name":"go-mod-golang-release","key":"golang-latest","version":"1.25"}
 {"name":"makefile-go-vulncheck","key":"https://go.googlesource.com/vuln.git","version":"v1.1.4"}
-{"name":"makefile-gomajor","key":"https://github.com/icholy/gomajor.git","version":"v0.14.0"}
+{"name":"makefile-gomajor","key":"https://github.com/icholy/gomajor.git","version":"v0.15.0"}
 {"name":"makefile-gosec","key":"https://github.com/securego/gosec.git","version":"v2.22.8"}
 {"name":"makefile-markdown-lint","key":"docker.io/davidanson/markdownlint-cli2","version":"v0.18.1"}
-{"name":"makefile-osv-scanner","key":"https://github.com/google/osv-scanner.git","version":"v2.2.1"}
+{"name":"makefile-osv-scanner","key":"https://github.com/google/osv-scanner.git","version":"v2.2.2"}
 {"name":"makefile-staticcheck","key":"https://github.com/dominikh/go-tools.git","version":"v0.6.1"}
 {"name":"osv-golang-release","key":"docker.io/library/golang","version":"1.25.0"}
