@@ -19,7 +19,7 @@ GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 MARKDOWN_LINT_VER?=v0.18.1
 GOMAJOR_VER?=v0.15.0
-GOSEC_VER?=v2.22.8
+GOSEC_VER?=v2.22.9
 GO_VULNCHECK_VER?=v1.1.4
 OSV_SCANNER_VER?=v2.2.2
 STATICCHECK_VER?=v0.6.1
@@ -76,7 +76,7 @@ vulnerability-scan: osv-scanner vulncheck-go ## Run all vulnerability scanners
 
 .PHONY: osv-scanner
 osv-scanner: $(GOPATH)/bin/osv-scanner .FORCE ## Run OSV Scanner
-	$(GOPATH)/bin/osv-scanner scan --config .osv-scanner.toml -r --licenses="Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,CC-BY-SA-4.0,UNKNOWN" .
+	$(GOPATH)/bin/osv-scanner scan --config .osv-scanner.toml -r --licenses="Apache-2.0,BSD-2-Clause,BSD-3-Clause,CC-BY-SA-4.0,ISC,MIT,MPL-2.0,UNKNOWN" .
 
 .PHONY: vulncheck-go
 vulncheck-go: $(GOPATH)/bin/govulncheck .FORCE ## Run govulncheck
