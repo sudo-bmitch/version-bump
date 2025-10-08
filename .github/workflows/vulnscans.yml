@@ -38,4 +38,4 @@ jobs:
 
     - name: "Run OSV Scanner"
       run: |
-        osv-scanner scan --config .osv-scanner.toml -r --experimental-licenses="Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,CC-BY-SA-4.0,UNKNOWN" .
+        osv-scanner scan --config .osv-scanner.toml -r --experimental-licenses="Apache-2.0,BSD-2-Clause,BSD-3-Clause,CC-BY-SA-4.0,ISC,MIT,MPL-2.0,UNKNOWN" .
