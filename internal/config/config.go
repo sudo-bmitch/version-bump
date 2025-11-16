@@ -53,16 +53,17 @@ type Source struct {
 // Filter defines how items are filtered in from the source.
 // By default, all items are included.
 type Filter struct {
-	Expr string `yaml:"expr" json:"expr"`
+	Expr string `yaml:"expr" json:"expr"` // Regexp to match, Go templating is enabled on this
 	// Template string `yaml:"template" json:"template"` // Deprecated: removed after no usage found
 }
 
 // Sort defines how multiple results should be filtered and sorted.
 // By default, sort returns the 0 offset of a descending sort.
 type Sort struct {
-	Method string `yaml:"method" json:"method"`
-	Asc    bool   `yaml:"asc" json:"asc"`
-	Offset int    `yaml:"offset" json:"offset"`
+	Method   string `yaml:"method" json:"method"`     // Sorting methods include: semver, numeric, or unset for an ascii sort
+	Asc      bool   `yaml:"asc" json:"asc"`           // Sort values ascending (smallest number first)
+	Offset   int    `yaml:"offset" json:"offset"`     // Offset within the sorted values to pick
+	Template string `yaml:"template" json:"template"` // Preprocess value to be sorted, this does not effect the resulting version number only the sorting
 }
 
 // Config contains the configuration options for the project

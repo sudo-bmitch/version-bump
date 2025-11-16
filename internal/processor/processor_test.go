@@ -9,6 +9,7 @@ import (
 
 	"github.com/sudo-bmitch/version-bump/internal/config"
 	"github.com/sudo-bmitch/version-bump/internal/lockfile"
+	"github.com/sudo-bmitch/version-bump/internal/source"
 )
 
 func TestProcessor(t *testing.T) {
@@ -401,6 +402,92 @@ func TestProcessor(t *testing.T) {
 			lockExpect := lockExpectBuf.Bytes()
 			if !bytes.Equal(lockOut, lockExpect) {
 				t.Errorf("unexpected locks: expected %s, received %s", lockExpect, lockOut)
+			}
+		})
+	}
+}
+
+func TestResultsToVer(t *testing.T) {
+	tt := []struct {
+		name    string
+		p       processor
+		results source.Results
+		tdp     tmplDataProcess
+		expect  string
+		err     error
+	}{
+		{
+			name: "semver",
+			p: processor{
+				Filename: "test-semver",
+				Processor: config.Processor{
+					Name: "semver",
+					Filter: config.Filter{
+						Expr: "",
+					},
+					Sort: config.Sort{
+						Method: "semver",
+					},
+				},
+			},
+			results: source.Results{
+				VerMap: map[string]string{
+					"1.2.3": "1.2.3",
+					"1.2.4": "1.2.4",
+					"1.3.3": "1.3.3",
+					"2.2.3": "2.2.3",
+				},
+			},
+			tdp: tmplDataProcess{
+				ScanMatch: map[string]string{},
+			},
+			expect: "2.2.3",
+		},
+		{
+			name: "go-subpackage",
+			p: processor{
+				Filename: "test-go-subpackage",
+				Processor: config.Processor{
+					Name: "semver",
+					Filter: config.Filter{
+						Expr: "subpackage/.*",
+					},
+					Sort: config.Sort{
+						Method:   "semver",
+						Template: "{{ index (split . \"/\") 1 }}",
+					},
+					Template: "{{ index (split .Version \"/\") 1 }}",
+				},
+			},
+			results: source.Results{
+				VerMap: map[string]string{
+					"subpackage/1.2.3": "subpackage/1.2.3",
+					"1.2.4":            "1.2.4",
+					"subpackage/1.3.3": "subpackage/1.3.3",
+					"2.2.3":            "2.2.3",
+				},
+			},
+			tdp: tmplDataProcess{
+				ScanMatch: map[string]string{},
+			},
+			expect: "1.3.3",
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.tdp.processor = tc.p
+			out, err := tc.p.resultsToVer(tc.results, tc.tdp)
+			if tc.err != nil {
+				if tc.err.Error() != err.Error() && !errors.Is(err, tc.err) {
+					t.Errorf("expected error %v, received %v", tc.err, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.expect != out {
+				t.Errorf("expected version %q, received %q", tc.expect, out)
 			}
 		})
 	}
