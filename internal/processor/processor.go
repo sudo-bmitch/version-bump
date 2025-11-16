@@ -142,17 +142,29 @@ func (p *processor) resultsToVer(results source.Results, tdp tmplDataProcess) (s
 		}
 		filterExp = re
 	}
+	// Keys are sorted.
+	// They may be the result of templating, in which case k2v is needed to return to the version.
 	keys := make([]string, 0, len(results.VerMap))
-	for k := range results.VerMap {
-		if filterExp != nil && !filterExp.MatchString(k) {
+	k2v := map[string]string{}
+	for v := range results.VerMap {
+		if filterExp != nil && !filterExp.MatchString(v) {
 			continue
 		}
+		k := v
+		if p.Processor.Sort.Template != "" {
+			kt, err := template.String(p.Processor.Sort.Template, v)
+			if err != nil {
+				continue
+			}
+			k = kt
+		}
+		k2v[k] = v
 		keys = append(keys, k)
 	}
 	if len(keys) == 0 {
 		return "", fmt.Errorf("no results found matching the filter %s", p.Processor.Filter.Expr)
 	}
-	// sort the keys
+	// sort according to the specified method
 	switch p.Processor.Sort.Method {
 	case "semver":
 		vers := make([]*semver.Version, 0, len(keys))
@@ -207,17 +219,22 @@ func (p *processor) resultsToVer(results source.Results, tdp tmplDataProcess) (s
 			sort.Sort(sort.Reverse(sort.StringSlice(keys)))
 		}
 	}
+	// convert the keys back to a list of versions (reverse the templating)
+	verList := make([]string, len(keys))
+	for i, k := range keys {
+		verList[i] = k2v[k]
+	}
 	// select the requested offset and template
 	if p.Processor.Sort.Offset < 0 {
 		return "", fmt.Errorf("offset cannot be negative")
 	}
-	if len(keys) <= p.Processor.Sort.Offset {
-		return "", fmt.Errorf("requested offset is too large, %d matching versions found: %v", len(keys), keys)
+	if len(verList) <= p.Processor.Sort.Offset {
+		return "", fmt.Errorf("requested offset is too large, %d matching versions found: %v", len(verList), verList)
 	}
 	tdr := tmplDataResults{
 		Results: results,
-		VerList: keys,
-		Version: results.VerMap[keys[p.Processor.Sort.Offset]],
+		VerList: verList,
+		Version: results.VerMap[verList[p.Processor.Sort.Offset]],
 	}
 	if p.Processor.Template != "" {
 		return template.String(p.Processor.Template, tdr)
