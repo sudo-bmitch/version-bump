@@ -134,7 +134,7 @@ func (cli *cliOpts) runAction(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load lockfile: %w", err)
 	}
-	if len(args) == 0 && !flagChanged(cmd, "prune") {
+	if len(args) == 0 && !flagChanged(cmd, "prune") && len(cli.processors) == 0 {
 		cli.prune = true
 	}
 
