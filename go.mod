@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/go-git/go-git/v5 v5.16.4
-	github.com/goccy/go-yaml v1.19.0
+	github.com/goccy/go-yaml v1.19.1
 	github.com/regclient/regclient v0.11.1
 	github.com/spf13/cobra v1.10.2
 )
