@@ -346,11 +346,13 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 		tmpName := tmp.Name()
 		_, err = tmp.Write(finalBytes)
 		if err != nil {
+			//#nosec G703 file to read is controlled by user running the command
 			_ = os.Remove(tmpName)
 			return nil, fmt.Errorf("failed to write temp file %s: %w", tmpName, err)
 		}
 		err = tmp.Close()
 		if err != nil {
+			//#nosec G703 file to read is controlled by user running the command
 			_ = os.Remove(tmpName)
 			return nil, fmt.Errorf("failed to close temp file %s: %w", tmpName, err)
 		}
@@ -360,12 +362,16 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 		if err == nil && stat.Mode().IsRegular() {
 			mode = stat.Mode()
 		}
+		//#nosec G703 file to read is controlled by user running the command
 		if err := os.Chmod(tmpName, mode); err != nil {
+			//#nosec G703 file to read is controlled by user running the command
 			_ = os.Remove(tmpName)
 			return nil, fmt.Errorf("failed to adjust permissions on file %s: %w", filename, err)
 		}
 		// move temp file to target filename
+		//#nosec G703 file to read is controlled by user running the command
 		if err := os.Rename(tmpName, filename); err != nil {
+			//#nosec G703 file to read is controlled by user running the command
 			_ = os.Remove(tmpName)
 			return nil, fmt.Errorf("failed to rename file %s to %s: %w", tmpName, filename, err)
 		}

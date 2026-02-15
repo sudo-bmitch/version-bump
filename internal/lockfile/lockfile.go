@@ -149,11 +149,13 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 	tmpName := tmp.Name()
 	err = l.SaveWriter(tmp, used)
 	if err != nil {
+		//#nosec G703 path to create is controlled by user running the command
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("failed to save lock file %s: %w", tmpName, err)
 	}
 	err = tmp.Close()
 	if err != nil {
+		//#nosec G703 path to create is controlled by user running the command
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("failed to close lock file %s: %w", tmpName, err)
 	}
@@ -163,12 +165,16 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 	if err == nil && stat.Mode().IsRegular() {
 		mode = stat.Mode()
 	}
+	//#nosec G703 path to create is controlled by user running the command
 	if err := os.Chmod(tmpName, mode); err != nil {
+		//#nosec G703 path to create is controlled by user running the command
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("failed to change permission on lockfile %s: %w", tmpName, err)
 	}
 	// move temp file to target filename
+	//#nosec G703 path to create is controlled by user running the command
 	if err := os.Rename(tmpName, filename); err != nil {
+		//#nosec G703 path to create is controlled by user running the command
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("failed to replace lockfile %s: %w", filename, err)
 	}
