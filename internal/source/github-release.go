@@ -68,6 +68,7 @@ func ghrReleaseList(conf config.Source) ([]*GHRelease, error) {
 	if token != "" {
 		req.SetBasicAuth("git", token)
 	}
+	//#nosec G704 config file containing URL fragments is controlled by user running the command
 	resp, err := ghrState.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call releases API: %w", err)
