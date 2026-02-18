@@ -119,7 +119,6 @@ func ghrReleaseName(conf config.Source) (Results, error) {
 		VerMeta: map[string]any{},
 	}
 	for _, r := range releases {
-		r := r
 		if r.Draft && !allowDraft {
 			continue
 		}
@@ -168,7 +167,6 @@ func ghrArtifact(conf config.Source) (Results, error) {
 		VerMeta: map[string]any{},
 	}
 	for _, r := range releases {
-		r := r
 		if r.Draft && !allowDraft {
 			continue
 		}

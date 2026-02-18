@@ -13,6 +13,7 @@ files:
       - gha-uses-commit
   "Makefile":
     processors:
+      - makefile-gofumpt
       - makefile-gomajor
       - makefile-gosec
       - makefile-go-vulncheck
@@ -121,6 +122,12 @@ processors:
     filter:
       expr: '^\d+\.\d+$'
 
+  makefile-gofumpt:
+    <<: *git-tag-semver
+    scanArgs:
+      regexp: '^GOFUMPT_VER\?=(?P<Version>v?[0-9\.]+)\s*$'
+    sourceArgs:
+      url: "https://github.com/mvdan/gofumpt.git"
   makefile-gomajor:
     <<: *git-tag-semver
     scanArgs:

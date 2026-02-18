@@ -139,7 +139,7 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 	// write to a temp file
 	dir := filepath.Dir(filename)
 	//#nosec G301 path to create is controlled by user running the command
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create %s: %w", dir, err)
 	}
 	tmp, err := os.CreateTemp(dir, filepath.Base(filename))
@@ -160,7 +160,7 @@ func (l *Locks) SaveFile(filename string, used bool) error {
 		return fmt.Errorf("failed to close lock file %s: %w", tmpName, err)
 	}
 	// update permissions to match existing file or 0644
-	mode := os.FileMode(0644)
+	mode := os.FileMode(0o644)
 	stat, err := os.Stat(filename)
 	if err == nil && stat.Mode().IsRegular() {
 		mode = stat.Mode()
