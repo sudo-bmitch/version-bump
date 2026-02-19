@@ -18,6 +18,7 @@ DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
 MARKDOWN_LINT_VER?=v0.20.0
+GOFUMPT_VER?=v0.9.2
 GOMAJOR_VER?=v0.15.0
 GOSEC_VER?=v2.23.0
 GO_VULNCHECK_VER?=v1.1.4
@@ -29,11 +30,19 @@ STATICCHECK_VER?=v0.7.0
 .FORCE:
 
 .PHONY: all
-all: fmt goimports vet test lint binaries ## Full build of Go binaries (including fmt, vet, test, and lint)
+all: fmt gofumpt gofix goimports vet test lint binaries ## Full build of Go binaries (including fmt, vet, test, and lint)
 
 .PHONY: fmt
 fmt: ## go fmt
 	go fmt ./...
+
+.PHONY: gofumpt
+gofumpt: $(GOPATH)/bin/gofumpt ## gofumpt is a stricter alternative to go fmt
+	gofumpt -l -w .
+
+.PHONY: gofix
+gofix: ## go fix
+	go fix ./...
 
 .PHONY: goimports
 goimports: $(GOPATH)/bin/goimports
@@ -53,6 +62,7 @@ lint: lint-go lint-goimports lint-md lint-gosec ## Run all linting
 .PHONY: lint-go
 lint-go: $(GOPATH)/bin/staticcheck .FORCE ## Run linting for Go
 	$(GOPATH)/bin/staticcheck -checks all ./...
+	errors=$$(go fix -diff ./...); if [ "$${errors}" != "" ]; then echo "$${errors}"; exit 1; fi
 
 .PHONY: lint-goimports
 lint-goimports: $(GOPATH)/bin/goimports
@@ -154,6 +164,11 @@ util-golang-update-direct: ## Update direct go dependencies
 	go get $$(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all)
 	go mod tidy
 	[ ! -d vendor ] || go mod vendor
+
+$(GOPATH)/bin/gofumpt: .FORCE
+	@[ -f "$(GOPATH)/bin/gofumpt" ] \
+	&& [ "$$($(GOPATH)/bin/gofumpt -version | cut -f 1 -d ' ')" = "$(GOFUMPT_VER)" ] \
+	|| go install mvdan.cc/gofumpt@$(GOFUMPT_VER)
 
 $(GOPATH)/bin/goimports: .FORCE
 	@[ -f "$(GOPATH)/bin/goimports" ] \

@@ -211,14 +211,15 @@ func newPattern(expr string) (*pattern, error) {
 	// full match requires the entire path to match
 	reFullStr := "^" + strings.Join(reParts, "") + "$"
 	// partial match makes every successive path entry optional
-	rePartStr := "^" + strings.Join(reParts, "(?:")
+	var rePartStr strings.Builder
+	rePartStr.WriteString("^" + strings.Join(reParts, "(?:"))
 	for range len(reParts) - 1 {
-		rePartStr += ")?"
+		rePartStr.WriteString(")?")
 	}
-	rePartStr += "$"
+	rePartStr.WriteString("$")
 	p := pattern{
 		full:   regexp.MustCompile(reFullStr),
-		prefix: regexp.MustCompile(rePartStr),
+		prefix: regexp.MustCompile(rePartStr.String()),
 	}
 
 	return &p, nil

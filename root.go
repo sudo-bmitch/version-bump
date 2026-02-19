@@ -45,7 +45,7 @@ type cliOpts struct {
 
 func NewRootCmd() *cobra.Command {
 	var rootOpts cliOpts
-	var rootCmd = &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:           "version-bump <cmd>",
 		Short:         "Version and pinning management tool",
 		Long:          `version-bump updates versions embedded in various files of your project`,
@@ -54,7 +54,7 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	// check
-	var checkCmd = &cobra.Command{
+	checkCmd := &cobra.Command{
 		Use:   "check <file list>",
 		Short: "Check versions in files compared to sources",
 		Long: `Check each file identified in the configuration for versions.
@@ -65,7 +65,7 @@ By default, the current directory is changed to the location of the config file.
 	}
 
 	// update
-	var updateCmd = &cobra.Command{
+	updateCmd := &cobra.Command{
 		Use:   "update <file list>",
 		Short: "Update versions in files using upstream sources",
 		Long: `Scan each file identified in the configuration for versions.
@@ -81,7 +81,7 @@ By default, the current directory is changed to the location of the config file.
 	// reset
 
 	// scan
-	var scanCmd = &cobra.Command{
+	scanCmd := &cobra.Command{
 		Use:   "scan <file list>",
 		Short: "Scan versions from files into lock file",
 		Long: `Scan each file identified in the configuration for versions.
@@ -91,7 +91,7 @@ By default, the current directory is changed to the location of the config file.
 		RunE: rootOpts.runAction,
 	}
 
-	var versionCmd = &cobra.Command{
+	versionCmd := &cobra.Command{
 		Use:   "version",
 		Short: "Show the version",
 		Long:  `Show the version`,
@@ -357,7 +357,7 @@ func (cli *cliOpts) procFile(ctx context.Context, filename string, fileKey strin
 			return nil, fmt.Errorf("failed to close temp file %s: %w", tmpName, err)
 		}
 		// update permissions to match existing file or 0644
-		mode := os.FileMode(0644)
+		mode := os.FileMode(0o644)
 		stat, err := os.Stat(filename)
 		if err == nil && stat.Mode().IsRegular() {
 			mode = stat.Mode()
