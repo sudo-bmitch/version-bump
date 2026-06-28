@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-example_day=07
-example_sec=22
-image=alpine:latest@sha256:8914eb54f968791faf6a8638949e480fef81e697984fba772b3976835194c6d4
+rc=0
+for file in $(git ls-files -- '*.go' '*.sh' '*.yml'); do
+  if ! grep -iq "copyright the version-bump contributors" "${file}"; then
+    echo "Missing copyright comment: ${file}" >&2
+	 rc=1
+  fi
+done
+
+exit ${rc}
