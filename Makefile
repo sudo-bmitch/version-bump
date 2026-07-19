@@ -31,10 +31,10 @@ DOCKERFILE_EXT?=$(shell if docker build --help 2>/dev/null | grep -q -- '--progr
 DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
-MARKDOWN_LINT_VER?=v0.23.0
+MARKDOWN_LINT_VER?=v0.23.1
 GOFUMPT_VER?=v0.10.0
 GOMAJOR_VER?=v0.15.0
-GOSEC_VER?=v2.27.1
+GOSEC_VER?=v2.28.0
 GO_VULNCHECK_VER?=v1.6.0
 OSV_SCANNER_VER?=v2.4.0
 STATICCHECK_VER?=v0.7.0
