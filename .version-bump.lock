@@ -25,6 +25,6 @@
 {"name":"makefile-gomajor","key":"https://github.com/icholy/gomajor.git","version":"v0.15.0"}
 {"name":"makefile-gosec","key":"https://github.com/securego/gosec.git","version":"v2.28.0"}
 {"name":"makefile-markdown-lint","key":"docker.io/davidanson/markdownlint-cli2","version":"v0.23.2"}
-{"name":"makefile-osv-scanner","key":"https://github.com/google/osv-scanner.git","version":"v2.4.0"}
+{"name":"makefile-osv-scanner","key":"https://github.com/google/osv-scanner.git","version":"v2.5.0"}
 {"name":"makefile-staticcheck","key":"https://github.com/dominikh/go-tools.git","version":"v0.7.0"}
 {"name":"osv-golang-release","key":"docker.io/library/golang","version":"1.26.5"}
