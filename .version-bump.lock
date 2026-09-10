@@ -20,8 +20,8 @@
 {"name":"gha-uses-semver","key":"https://github.com/sigstore/cosign-installer.git","version":"v4.1.2"}
 {"name":"gha-uses-semver","key":"https://github.com/softprops/action-gh-release.git","version":"v3.0.3"}
 {"name":"go-mod-golang-release","key":"golang-latest","version":"1.27"}
-{"name":"makefile-go-vulncheck","key":"https://go.googlesource.com/vuln.git","version":"v1.7.0"}
-{"name":"makefile-gofumpt","key":"https://github.com/mvdan/gofumpt.git","version":"v0.11.0"}
+{"name":"makefile-go-vulncheck","key":"https://go.googlesource.com/vuln.git","version":"v1.8.0"}
+{"name":"makefile-gofumpt","key":"https://github.com/mvdan/gofumpt.git","version":"v0.12.0"}
 {"name":"makefile-gomajor","key":"https://github.com/icholy/gomajor.git","version":"v0.15.0"}
 {"name":"makefile-gosec","key":"https://github.com/securego/gosec.git","version":"v2.29.0"}
 {"name":"makefile-markdown-lint","key":"docker.io/davidanson/markdownlint-cli2","version":"v0.23.2"}
