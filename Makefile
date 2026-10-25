@@ -31,10 +31,10 @@ DOCKERFILE_EXT?=$(shell if docker build --help 2>/dev/null | grep -q -- '--progr
 DOCKER_ARGS?=--build-arg "VCS_REF=$(VCS_REF)"
 GOPATH?=$(shell go env GOPATH)
 PWD:=$(shell pwd)
-MARKDOWN_LINT_VER?=v0.23.3
+MARKDOWN_LINT_VER?=v0.24.0
 GOFUMPT_VER?=v0.12.0
 GOMAJOR_VER?=v0.15.0
-GOSEC_VER?=v2.29.0
+GOSEC_VER?=v2.30.0
 GO_VULNCHECK_VER?=v1.9.0
 OSV_SCANNER_VER?=v2.7.0
 STATICCHECK_VER?=v0.8.2
@@ -92,8 +92,7 @@ lint-goimports: $(GOPATH)/bin/goimports
 
 .PHONY: lint-gosec
 lint-gosec: $(GOPATH)/bin/gosec .FORCE ## Run gosec
-	# $(GOPATH)/bin/gosec -terse ./...
-	echo "gosec is disabled pending a new release: https://github.com/securego/gosec/issues/1774"
+	$(GOPATH)/bin/gosec -terse ./...
 
 .PHONY: lint-md
 lint-md: .FORCE ## Run linting for markdown
